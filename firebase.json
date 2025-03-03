@@ -12,7 +12,13 @@
     ],
     "frameworksBackend": {
       "region": "us-west1"
-    }
+    },
+    "rewrites": [
+      {
+        "source": "/__/auth/**",
+        "destination": "/__/auth/index.html"
+      }
+    ]
   },
   "storage": {
     "rules": "storage.rules"
