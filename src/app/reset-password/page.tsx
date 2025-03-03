@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ResetPasswordPage() {
-  
-  // Wrap in Suspense boundary
+  // Wrap in Suspense boundary for better loading experience
   return (
-    <Suspense fallback={<div className="min-h-screen flex justify-center items-center bg-gray-50">
-      <LoadingSpinner size="lg" />
-    </div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <LoadingSpinner size="lg" />
+      </div>
+    }>
       <ResetPasswordContent />
     </Suspense>
   );
@@ -93,6 +94,7 @@ function ResetPasswordContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* Header and Title */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold text-primary-dark">TranslationFlow</h1>
@@ -105,26 +107,44 @@ function ResetPasswordContent() {
         </div>
       </div>
 
+      {/* Main Card Content */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-100">
           {isSuccess ? (
+            // Success State
             <div className="text-center">
-              <div className="flex justify-center mb-4 text-success">
-                <svg className="h-12 w-12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="flex justify-center mb-6 text-success animate-bounce-in">
+                <div className="bg-success/10 p-4 rounded-full">
+                  <svg className="h-16 w-16" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Reset link sent</h3>
-              <p className="mt-2 text-sm text-gray-500">
-                We&apos;ve sent a password reset link to <strong>{email}</strong>. Please check your email inbox and follow the instructions to reset your password.
+              <h3 className="text-xl leading-6 font-semibold text-gray-900">Password Reset Link Sent</h3>
+              <p className="mt-4 text-sm text-gray-600 max-w-md mx-auto">
+                We&apos;ve sent a password reset link to <strong className="text-primary font-medium">{email}</strong>. 
+                Please check your email inbox and follow the instructions to reset your password.
               </p>
-              <div className="mt-6">
-                <Link href="/login">
-                  <Button variant="primary" fullWidth>
-                    Return to login
+              <p className="mt-2 text-xs text-gray-500">
+                After clicking the link in the email, you'll be directed to set a new password.
+              </p>
+              
+              {/* Return to Login Button */}
+              <div className="mt-8">
+                <Link href="/login" className="w-full block">
+                  <Button 
+                    variant="primary" 
+                    fullWidth 
+                    size="lg"
+                    className="bg-primary text-white hover:bg-primary-dark shadow-md button-primary transition-all duration-200 transform hover:scale-[1.02] font-medium"
+                    onClick={() => router.push('/login')}
+                  >
+                    Return to Login Page
                   </Button>
                 </Link>
               </div>
+              
+              {/* Try Again Option */}
               <p className="mt-4 text-sm text-gray-500">
                 Didn&apos;t receive the email?{' '}
                 <button
@@ -139,7 +159,9 @@ function ResetPasswordContent() {
               </p>
             </div>
           ) : (
+            // Form State
             <form className="space-y-6" onSubmit={handleSubmit}>
+              {/* Email Input */}
               <FormInput
                 label="Email address"
                 type="email"
@@ -157,20 +179,34 @@ function ResetPasswordContent() {
                 }
               />
 
-              <div>
-                <Button
+              {/* Submit Button */}
+              <div className="mt-6">
+                <button
                   type="submit"
-                  variant="primary"
-                  fullWidth
-                  isLoading={isLoading}
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 relative"
                 >
-                  Send reset link
-                </Button>
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    "Send Password Reset Link"
+                  )}
+                </button>
               </div>
 
-              <div className="text-center">
-                <Link href="/login" className="text-sm font-medium text-primary hover:text-primary-dark">
-                  Return to login
+              {/* Return to Login Link */}
+              <div className="text-center mt-4">
+                <Link 
+                  href="/login" 
+                  className="text-sm font-medium text-primary hover:text-primary-dark transition-colors duration-200"
+                >
+                  Return to Login
                 </Link>
               </div>
             </form>

@@ -15,6 +15,8 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode,
   updateProfile
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -28,6 +30,8 @@ interface AuthContextType {
   signup: (email: string, password: string, displayName?: string) => Promise<UserCredential>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  confirmReset: (code: string, newPassword: string) => Promise<void>;
+  verifyResetCode: (code: string) => Promise<string>;
   updateUserProfile: (displayName: string) => Promise<void>;
   clearError: () => void;
 }
@@ -111,6 +115,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       throw err;
     }
   };
+  
+  // Confirm password reset function
+  const confirmReset = async (code: string, newPassword: string) => {
+    setError(null);
+    try {
+      await confirmPasswordReset(auth, code, newPassword);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      throw err;
+    }
+  };
+  
+  // Verify password reset code function
+  const verifyResetCode = async (code: string) => {
+    setError(null);
+    try {
+      return await verifyPasswordResetCode(auth, code);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      throw err;
+    }
+  };
 
   // Update user profile function
   const updateUserProfile = async (displayName: string) => {
@@ -151,6 +179,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signup,
     logout,
     resetPassword,
+    confirmReset,
+    verifyResetCode,
     updateUserProfile,
     clearError
   };

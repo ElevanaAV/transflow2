@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "transflow2-0"
-  }
+    "default": "transflow2-0",
+    "production": "transflow2-0"
+  },
+  "targets": {},
+  "etags": {}
 }
