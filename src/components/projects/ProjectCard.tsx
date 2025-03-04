@@ -108,14 +108,19 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
       }
       setDropdownOpen(type);
       // Fetch regardless of current state
+      console.log('Fetching users from component...');
       getValidatedUsers()
         .then(validatedUsers => {
-          console.log('Fetched validatedUsers:', validatedUsers);
+          console.log('Received validatedUsers in component:', validatedUsers);
+          console.log('Users array length:', validatedUsers.length);
+          if (validatedUsers.length > 0) {
+            console.log('First user:', validatedUsers[0]);
+          }
           setUsers(validatedUsers);
           setIsLoadingUsers(false);
         })
         .catch(error => {
-          console.error('Error fetching users:', error);
+          console.error('Error fetching users in component:', error);
           setIsLoadingUsers(false);
         });
     }

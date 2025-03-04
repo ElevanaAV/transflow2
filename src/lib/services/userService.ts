@@ -34,19 +34,24 @@ const convertToUserProfile = (doc: DocumentSnapshot | QueryDocumentSnapshot): Us
     throw new Error('Document data is empty');
   }
   
-  return {
+  console.log(`Converting user doc ${doc.id} to UserProfile`, data);
+  
+  const profile = {
     uid: doc.id,
-    email: data.email,
-    displayName: data.displayName || null,
+    email: data.email || '',
+    displayName: data.displayName || doc.id.substring(0, 8),
     photoURL: data.photoURL || null,
-    isValidated: data.isValidated || false,
-    roles: data.roles || [UserRole.USER],
+    isValidated: data.isValidated === true, // Ensure boolean
+    roles: Array.isArray(data.roles) ? data.roles : [UserRole.USER],
     bio: data.bio || null,
-    skills: data.skills || [],
-    languages: data.languages || [],
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
-    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt
+    skills: Array.isArray(data.skills) ? data.skills : [],
+    languages: Array.isArray(data.languages) ? data.languages : [],
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date()
   } as UserProfile;
+  
+  console.log(`Converted profile for ${doc.id}:`, profile);
+  return profile;
 };
 
 /**
@@ -167,22 +172,57 @@ export const getValidatedUsers = async (): Promise<UserProfile[]> => {
     const allUsersSnapshot = await getDocs(allUsersQuery);
     console.log(`Found ${allUsersSnapshot.size} total users in database`);
     
-    // Log the first few users for debugging
-    allUsersSnapshot.docs.slice(0, 3).forEach(doc => {
-      console.log(`User ${doc.id}:`, doc.data());
+    // Log all users for debugging
+    allUsersSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      console.log(`User ${doc.id}: isValidated=${data.isValidated}, roles=${JSON.stringify(data.roles)}, displayName=${data.displayName}`);
     });
     
-    // Get validated users
-    const usersQuery = query(
+    // Try getting just validated users without orderBy first
+    // This will help determine if the issue is with the index
+    console.log('Trying without orderBy...');
+    
+    const simpleQuery = query(
       collection(firestore, USERS_COLLECTION),
-      where('isValidated', '==', true),
-      orderBy('displayName')
+      where('isValidated', '==', true)
     );
     
-    const querySnapshot = await getDocs(usersQuery);
-    console.log(`Found ${querySnapshot.size} validated users`);
+    const simpleQuerySnapshot = await getDocs(simpleQuery);
+    console.log(`Found ${simpleQuerySnapshot.size} validated users without orderBy`);
     
-    return querySnapshot.docs.map(convertToUserProfile);
+    // Now try with the original query
+    console.log('Trying with orderBy...');
+    
+    try {
+      const usersQuery = query(
+        collection(firestore, USERS_COLLECTION),
+        where('isValidated', '==', true),
+        orderBy('displayName')
+      );
+      
+      const querySnapshot = await getDocs(usersQuery);
+      console.log(`Found ${querySnapshot.size} validated users with orderBy`);
+      
+      // Check if we've got results
+      if (querySnapshot.size > 0) {
+        const users = querySnapshot.docs.map(convertToUserProfile);
+        console.log('Returning users:', users);
+        return users;
+      } else {
+        console.log('No validated users found with orderBy, fallback to simple query');
+        // Fall back to the simple query results
+        const users = simpleQuerySnapshot.docs.map(convertToUserProfile);
+        console.log('Returning users from fallback:', users);
+        return users;
+      }
+    } catch (orderByError) {
+      // If the orderBy query fails (likely due to missing index), log and use the simple query
+      console.error('Error with orderBy query:', orderByError);
+      console.log('Falling back to simple query due to error');
+      const users = simpleQuerySnapshot.docs.map(convertToUserProfile);
+      console.log('Returning users from error fallback:', users);
+      return users;
+    }
   } catch (error) {
     console.error('Error fetching validated users:', error);
     throw handleError(error);
