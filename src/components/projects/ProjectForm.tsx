@@ -228,6 +228,11 @@ export default function ProjectForm({
         )}
       </div>
       
+      <div className="mt-6 mb-4 pb-2 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">Languages</h3>
+        <p className="text-sm text-gray-500">Select the source and target languages for this project</p>
+      </div>
+      
       <LanguageDropdown
         label="Source Language"
         value={formData.sourceLanguage}

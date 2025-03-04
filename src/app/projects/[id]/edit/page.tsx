@@ -47,8 +47,11 @@ export default function EditProjectPage() {
       setIsUpdating(true);
       setError(null);
       
+      // Convert single targetLanguage to array for the project model
       const updatedProject = await updateProject(id as string, {
         ...projectData,
+        // Convert single targetLanguage to array of target languages
+        targetLanguages: projectData.targetLanguage ? [projectData.targetLanguage] : [],
         // Preserve existing phase statuses and other properties
         phases: project.phases,
         currentPhase: project.currentPhase,
@@ -115,7 +118,8 @@ export default function EditProjectPage() {
         <Breadcrumb items={breadcrumbItems} />
         
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Project</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Project</h1>
+          <p className="text-gray-600 mb-6">Update project details and language settings</p>
           
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
