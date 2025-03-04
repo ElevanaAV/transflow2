@@ -185,16 +185,38 @@ export default function ProjectForm({
         error={errors.sourceLanguage}
       />
       
-      <LanguageDropdown
-        label="Target Language"
-        value={formData.targetLanguage}
-        onChange={handleTargetLanguageChange}
-        placeholder="Select target language"
-        disabled={isLoading}
-        required={true}
-        error={errors.targetLanguage}
-        excludeCodes={[formData.sourceLanguage]} // Exclude the source language
-      />
+      {/* Keep using the original select for now to maintain compatibility */}
+      <div>
+        <label htmlFor="targetLanguages" className="block text-sm font-medium text-gray-700 mb-1">
+          Target Language
+          <span className="ml-1 text-red-500">*</span>
+        </label>
+        <select
+          id="targetLanguages"
+          name="targetLanguages"
+          value={formData.targetLanguage || ''}
+          onChange={(e) => handleTargetLanguageChange(e.target.value)}
+          className={`block w-full rounded-md border ${errors.targetLanguage ? 'border-red-500' : 'border-gray-300'} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
+          disabled={isLoading}
+          aria-invalid={!!errors.targetLanguage}
+        >
+          <option value="" disabled>Select target language</option>
+          {getSupportedLanguages()
+            .filter(language => language.code !== formData.sourceLanguage)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(language => (
+              <option key={language.code} value={language.code}>
+                {language.name}
+                {language.nativeName && language.nativeName !== language.name 
+                  ? ` (${language.nativeName})` 
+                  : ''}
+              </option>
+            ))}
+        </select>
+        {errors.targetLanguage && (
+          <p className="mt-1 text-sm text-red-600">{errors.targetLanguage}</p>
+        )}
+      </div>
     </Form>
   );
 }
