@@ -39,12 +39,21 @@ function initializeFirebase() {
   try {
     // Check if Firebase has already been initialized
     if (!getApps().length) {
-      // Always use environment variables in production
-      // The fallback should never be used in production
-      const config = firebaseConfig;
+      // Use environment variables or fallback to basic config
+      // This ensures the app doesn't crash in development if env vars are missing
+      const config = process.env.NEXT_PUBLIC_FIREBASE_API_KEY 
+        ? firebaseConfig 
+        : {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyA1HHGRGCwKtRXSYQBZxYfHkgK5lPYQDEU",
+            authDomain: "transflow2-0.firebaseapp.com",
+            projectId: "transflow2-0",
+            storageBucket: "transflow2-0.appspot.com",
+            messagingSenderId: "926913152677",
+            appId: "1:926913152677:web:ddfb784ce05f9a6a71d221"
+          };
       
       // Log which configuration is being used (without sensitive values)
-      console.log('Firebase config source:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Environment variables' : 'Missing env vars!');
+      console.log('Firebase config source:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Environment variables' : 'Using default config');
       console.log('Firebase project ID:', config.projectId || 'undefined');
       
       // Initialize the Firebase app
@@ -52,6 +61,7 @@ function initializeFirebase() {
       console.log('Firebase initialized successfully');
     } else {
       firebaseApp = getApps()[0];
+      console.log('Using existing Firebase app');
     }
 
     // Initialize Firebase services

@@ -30,7 +30,14 @@ export default function Form({
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isLoading) {
-      onSubmit(e);
+      try {
+        console.log('Form submitted');
+        onSubmit(e);
+      } catch (error) {
+        console.error('Error in form submission:', error);
+      }
+    } else {
+      console.log('Form submission ignored - loading state is true');
     }
   };
 

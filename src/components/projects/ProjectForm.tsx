@@ -9,6 +9,13 @@ import FormInput from '@/components/ui/FormInput';
 import LanguageDropdown from '@/components/ui/LanguageDropdown';
 import { DEFAULT_SOURCE_LANGUAGE, getSupportedLanguages } from '@/lib/languages';
 
+interface ProjectFormProps {
+  initialData?: Partial<ProjectFormData>;
+  onSubmit: (data: ProjectFormData) => void;
+  onCancel?: () => void;
+  isLoading?: boolean;
+}
+
 export default function ProjectForm({ 
   initialData, 
   onSubmit, 
@@ -111,7 +118,10 @@ export default function ProjectForm({
     <Button
       type="button"
       variant="outline"
-      onClick={onCancel}
+      onClick={(e) => {
+        e.preventDefault();
+        onCancel();
+      }}
       disabled={isLoading}
     >
       Cancel

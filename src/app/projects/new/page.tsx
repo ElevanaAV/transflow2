@@ -17,18 +17,30 @@ export default function NewProjectPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateProject = async (projectData: ProjectFormData) => {
-    if (!user) return;
+    if (!user) {
+      setError('You must be logged in to create a project.');
+      return;
+    }
     
     try {
+      console.log('Creating project with data:', projectData);
+      console.log('User ID:', user.uid);
+      
       setIsCreating(true);
       setError(null);
+      
       const newProject = await createProject(projectData, user.uid);
+      console.log('Project created successfully:', newProject);
       
       // Redirect to the new project page
       router.push(`/projects/${newProject.id}`);
     } catch (err) {
       console.error('Error creating project:', err);
-      setError('Failed to create project. Please try again.');
+      if (err instanceof Error) {
+        setError(`Failed to create project: ${err.message}`);
+      } else {
+        setError('Failed to create project. Please try again.');
+      }
       setIsCreating(false);
     }
   };
