@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProjects } from '@/lib/services/projectService';
 import { Project, PhaseStatus, ProjectPhase, ProjectStats } from '@/lib/types';
-import { PHASE_SEQUENCE } from '@/lib/constants';
+import { PHASE_SEQUENCE, PHASE_LABELS } from '@/lib/constants';
 import AuthGuard from '@/components/auth/AuthGuard';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import ProjectCard from '@/components/projects/ProjectCard';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { FieldValue } from 'firebase/firestore';
 
 /**
  * Pagination component for projects
@@ -265,7 +266,13 @@ export default function ProjectsOverview() {
     if (sortOption === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOption === 'date') {
-      result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      result.sort((a, b) => {
+        const dateA = a.updatedAt instanceof Date ? a.updatedAt : 
+                     typeof a.updatedAt === 'number' ? new Date(a.updatedAt) : new Date();
+        const dateB = b.updatedAt instanceof Date ? b.updatedAt : 
+                     typeof b.updatedAt === 'number' ? new Date(b.updatedAt) : new Date();
+        return dateB.getTime() - dateA.getTime();
+      });
     }
     
     setFilteredProjects(result);
@@ -348,8 +355,10 @@ export default function ProjectsOverview() {
             // Sort by updatedAt timestamp
             const sortedProjects = [...userProjects].sort(
               (a, b) => {
-                const dateA = a.updatedAt instanceof Date ? a.updatedAt : new Date(a.updatedAt as number);
-                const dateB = b.updatedAt instanceof Date ? b.updatedAt : new Date(b.updatedAt as number);
+                const dateA = a.updatedAt instanceof Date ? a.updatedAt : 
+                            typeof a.updatedAt === 'number' ? new Date(a.updatedAt) : new Date();
+                const dateB = b.updatedAt instanceof Date ? b.updatedAt : 
+                            typeof b.updatedAt === 'number' ? new Date(b.updatedAt) : new Date();
                 return dateB.getTime() - dateA.getTime();
               }
             );
