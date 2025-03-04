@@ -157,6 +157,22 @@ export const setUserValidationStatus = async (
  */
 export const getValidatedUsers = async (): Promise<UserProfile[]> => {
   try {
+    console.log('Getting validated users');
+    
+    // First get all users to check if there are any
+    const allUsersQuery = query(
+      collection(firestore, USERS_COLLECTION)
+    );
+    
+    const allUsersSnapshot = await getDocs(allUsersQuery);
+    console.log(`Found ${allUsersSnapshot.size} total users in database`);
+    
+    // Log the first few users for debugging
+    allUsersSnapshot.docs.slice(0, 3).forEach(doc => {
+      console.log(`User ${doc.id}:`, doc.data());
+    });
+    
+    // Get validated users
     const usersQuery = query(
       collection(firestore, USERS_COLLECTION),
       where('isValidated', '==', true),
@@ -164,6 +180,8 @@ export const getValidatedUsers = async (): Promise<UserProfile[]> => {
     );
     
     const querySnapshot = await getDocs(usersQuery);
+    console.log(`Found ${querySnapshot.size} validated users`);
+    
     return querySnapshot.docs.map(convertToUserProfile);
   } catch (error) {
     console.error('Error fetching validated users:', error);

@@ -110,6 +110,7 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
       // Fetch regardless of current state
       getValidatedUsers()
         .then(validatedUsers => {
+          console.log('Fetched validatedUsers:', validatedUsers);
           setUsers(validatedUsers);
           setIsLoadingUsers(false);
         })
