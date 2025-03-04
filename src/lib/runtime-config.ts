@@ -64,7 +64,7 @@ export const getAssetUrl = (path: string) => {
 
 // Get Firebase Storage URL
 export const getStorageUrl = (path: string) => {
-  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'transflow2-0.appspot.com';
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'transflow2-0.firebasestorage.app';
   
   // Remove leading slash if present
   const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
