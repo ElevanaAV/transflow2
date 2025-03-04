@@ -164,7 +164,7 @@ export const getValidatedUsers = async (): Promise<UserProfile[]> => {
   try {
     console.log('Getting validated users');
     
-    // First get all users to check if there are any
+    // TEMPORARY SOLUTION: Get ALL users regardless of validation status
     const allUsersQuery = query(
       collection(firestore, USERS_COLLECTION)
     );
@@ -178,6 +178,12 @@ export const getValidatedUsers = async (): Promise<UserProfile[]> => {
       console.log(`User ${doc.id}: isValidated=${data.isValidated}, roles=${JSON.stringify(data.roles)}, displayName=${data.displayName}`);
     });
     
+    // TEMPORARY: Return all users regardless of validation status
+    const allUsers = allUsersSnapshot.docs.map(convertToUserProfile);
+    console.log('Returning all users regardless of validation:', allUsers);
+    return allUsers;
+    
+    /* ORIGINAL COMMENTED CODE
     // Try getting just validated users without orderBy first
     // This will help determine if the issue is with the index
     console.log('Trying without orderBy...');
@@ -223,6 +229,7 @@ export const getValidatedUsers = async (): Promise<UserProfile[]> => {
       console.log('Returning users from error fallback:', users);
       return users;
     }
+    */
   } catch (error) {
     console.error('Error fetching validated users:', error);
     throw handleError(error);
