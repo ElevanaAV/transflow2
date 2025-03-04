@@ -17,7 +17,10 @@ export default function NewProjectPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateProject = async (projectData: ProjectFormData) => {
+    console.log('Attempting to create project with data:', projectData);
+    
     if (!user) {
+      console.error('No user found');
       setError('You must be logged in to create a project.');
       return;
     }
@@ -32,8 +35,25 @@ export default function NewProjectPage() {
       const newProject = await createProject(projectData, user.uid);
       console.log('Project created successfully:', newProject);
       
-      // Redirect to the new project page
-      router.push(`/projects/${newProject.id}`);
+      // Redirect to the new project page with fallbacks
+      try {
+        // Try Next.js router first
+        router.push(`/projects/${newProject.id}`);
+        
+        // Fallback - use a timeout to ensure the navigation happens
+        setTimeout(() => {
+          try {
+            // If still on the page, try window.location as a fallback
+            window.location.href = `/projects/${newProject.id}`;
+          } catch (navError) {
+            console.error('Error redirecting with window.location:', navError);
+          }
+        }, 500);
+      } catch (routerError) {
+        console.error('Error with router.push:', routerError);
+        // Immediate fallback
+        window.location.href = `/projects/${newProject.id}`;
+      }
     } catch (err) {
       console.error('Error creating project:', err);
       if (err instanceof Error) {
@@ -66,9 +86,35 @@ export default function NewProjectPage() {
           
           <ProjectForm
             onSubmit={handleCreateProject}
-            onCancel={() => router.push('/projects/overview')}
+            onCancel={() => {
+              console.log('Cancel button clicked in new project page');
+              try {
+                // Try Next.js routing first
+                router.push('/projects/overview');
+                
+                // Fallback - use a timeout to try window.location
+                setTimeout(() => {
+                  try {
+                    window.location.href = '/projects/overview';
+                  } catch (error) {
+                    console.error('Error navigating with window.location:', error);
+                  }
+                }, 100);
+              } catch (error) {
+                console.error('Error navigating with router:', error);
+                // Immediate fallback
+                window.location.href = '/projects/overview';
+              }
+            }}
             isLoading={isCreating}
           />
+          
+          {/* Fallback navigation link */}
+          <div className="mt-4 text-center">
+            <a href="/projects/overview" className="text-sm text-gray-500 hover:text-gray-700">
+              Return to projects list
+            </a>
+          </div>
         </div>
       </div>
     </AuthGuard>

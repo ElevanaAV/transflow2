@@ -100,14 +100,32 @@ export default function ProjectForm({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("Form submitted, validating...");
     
     if (validateForm()) {
+      console.log("Form validation passed, submitting data:", formData);
       try {
-        onSubmit(formData);
-      } catch {
+        // Use a setTimeout to ensure the function runs outside the current event loop
+        setTimeout(() => {
+          try {
+            onSubmit(formData);
+          } catch (error) {
+            console.error("Error in submit handler:", error);
+            setFormError('An error occurred while submitting the form. Please try again.');
+          }
+        }, 10);
+      } catch (error) {
+        console.error("Error scheduling form submission:", error);
         setFormError('An error occurred while submitting the form. Please try again.');
       }
+    } else {
+      console.log("Form validation failed");
     }
+    
+    // Return false to prevent default form submission
+    return false;
   };
 
   const cancelButton = onCancel && (
@@ -116,7 +134,33 @@ export default function ProjectForm({
       variant="outline"
       onClick={(e) => {
         e.preventDefault();
-        onCancel();
+        e.stopPropagation();
+        console.log("Cancel button clicked");
+        // Try to prevent default on form
+        try {
+          if (e.target && e.target instanceof HTMLElement) {
+            const form = e.target.closest('form');
+            if (form) {
+              form.onsubmit = (e) => {
+                e.preventDefault();
+                return false;
+              };
+            }
+          }
+        } catch (err) {
+          console.error("Error preventing form submission:", err);
+        }
+        
+        // Execute the cancel function with a timeout to ensure it runs
+        setTimeout(() => {
+          try {
+            onCancel();
+          } catch (err) {
+            console.error("Error in cancel handler:", err);
+            // Direct navigation fallback
+            window.location.href = '/projects/overview';
+          }
+        }, 10);
       }}
       disabled={isLoading}
     >
@@ -130,6 +174,15 @@ export default function ProjectForm({
       variant="primary"
       className="bg-blue-600 hover:bg-blue-700 text-white"
       isLoading={isLoading}
+      onClick={(e) => {
+        // Add a click handler as an additional way to trigger the form submission
+        // This helps with some mobile browsers and Edge cases
+        if (!isLoading) {
+          console.log("Submit button clicked directly");
+          e.preventDefault();
+          handleSubmit(e);
+        }
+      }}
     >
       {initialData?.name ? 'Update Project' : 'Create Project'}
     </Button>
