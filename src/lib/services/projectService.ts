@@ -14,8 +14,10 @@ import {
   orderBy,
   DocumentSnapshot,
   QueryDocumentSnapshot,
-  FirestoreError
+  FirestoreError,
+  writeBatch
 } from 'firebase/firestore';
+import { executeBatch } from '../firebase/batchOperations';
 import { firestore } from '../firebase';
 import { 
   Project, 
@@ -25,8 +27,12 @@ import {
   ErrorResponse, 
   ProjectPhases,
   Video,
-  VideoFormData
+  VideoFormData,
+  StoredProject,
+  ProjectUpdate,
+  VideoUpdate
 } from '../types';
+import { handleError as globalHandleError } from '../errors/errorTypes';
 import { FieldValue } from 'firebase/firestore';
 import { PHASE_SEQUENCE } from '../constants';
 
@@ -73,26 +79,15 @@ const convertToVideo = (doc: DocumentSnapshot | QueryDocumentSnapshot): Video =>
 
 /**
  * Creates a standardized error response
+ * @deprecated Use handleError from errorTypes.ts instead
  */
 const createErrorResponse = (error: unknown, defaultMessage = 'An error occurred'): ErrorResponse => {
-  if (error instanceof FirestoreError) {
-    return {
-      message: error.message,
-      code: error.code,
-      details: error
-    };
-  }
-  
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      details: error
-    };
-  }
+  const appError = globalHandleError(error);
   
   return {
-    message: defaultMessage,
-    details: error
+    message: appError.message || defaultMessage,
+    code: appError.code,
+    details: appError.originalError
   };
 };
 
@@ -252,7 +247,7 @@ export const getUserProjects = async (userId: string): Promise<Project[]> => {
 /**
  * Updates an existing project
  */
-export const updateProject = async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
+export const updateProject = async (projectId: string, projectData: ProjectUpdate): Promise<Project> => {
   try {
     const docRef = doc(firestore, PROJECTS_COLLECTION, projectId);
     
@@ -262,11 +257,9 @@ export const updateProject = async (projectId: string, projectData: Partial<Proj
       throw new Error(`Project with ID ${projectId} not found`);
     }
     
-    // Remove id from update data and add updatedAt timestamp
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _, ...updateData } = projectData;
-    const dataToUpdate = {
-      ...updateData,
+    // Ensure updatedAt is set
+    const dataToUpdate: ProjectUpdate = {
+      ...projectData,
       updatedAt: serverTimestamp()
     };
     
@@ -274,12 +267,30 @@ export const updateProject = async (projectId: string, projectData: Partial<Proj
     
     // Combine current data with updates for better performance
     const currentData = convertToProject(currentDoc);
-    return {
+    
+    // Create updated project with type safety
+    const updatedProject: Project = {
       ...currentData,
-      ...updateData,
+      ...(projectData.name !== undefined && { name: projectData.name }),
+      ...(projectData.description !== undefined && { description: projectData.description }),
+      ...(projectData.sourceLanguage !== undefined && { sourceLanguage: projectData.sourceLanguage }),
+      ...(projectData.targetLanguages !== undefined && { targetLanguages: projectData.targetLanguages }),
+      ...(projectData.currentPhase !== undefined && { currentPhase: projectData.currentPhase }),
+      ...(projectData.owner !== undefined && { owner: projectData.owner }),
+      ...(projectData.assignees !== undefined && { assignees: projectData.assignees }),
       id: projectId,
       updatedAt: new Date()
     };
+    
+    // Update phases if needed
+    Object.entries(projectData).forEach(([key, value]) => {
+      if (key.startsWith('phases.')) {
+        const phase = key.split('.')[1] as ProjectPhase;
+        updatedProject.phases[phase] = value as PhaseStatus;
+      }
+    });
+    
+    return updatedProject;
   } catch (error) {
     console.error('Error updating project:', error);
     const errorResponse = createErrorResponse(error, `Failed to update project with ID ${projectId}`);
@@ -306,7 +317,8 @@ export const updateProjectPhaseStatus = async (
     
     const currentProject = convertToProject(currentDoc);
     
-    const updateData: Record<string, PhaseStatus | ProjectPhase | FieldValue> = {
+    // Create a strongly-typed update object
+    const updateData: ProjectUpdate = {
       [`phases.${phase}`]: status,
       updatedAt: serverTimestamp()
     };
@@ -318,25 +330,31 @@ export const updateProjectPhaseStatus = async (
     
     await updateDoc(docRef, updateData);
     
-    // Combine current data with updates for better performance
+    // Create new project object with updated phases
+    const updatedPhases = { ...currentProject.phases };
+    updatedPhases[phase] = status;
+    
+    // Return updated project
     return {
       ...currentProject,
-      phases: {
-        ...currentProject.phases,
-        [phase]: status
-      },
+      phases: updatedPhases,
       ...(status === PhaseStatus.IN_PROGRESS ? { currentPhase: phase } : {}),
       updatedAt: new Date()
     };
   } catch (error) {
     console.error('Error updating project phase:', error);
-    const errorResponse = createErrorResponse(error, `Failed to update phase status for project with ID ${projectId}`);
+    // Use our new error handling
+    const appError = globalHandleError(error);
+    const errorResponse = createErrorResponse(
+      error, 
+      `Failed to update phase status for project with ID ${projectId}`
+    );
     throw errorResponse;
   }
 };
 
 /**
- * Deletes a project
+ * Deletes a project and all associated data
  */
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
@@ -348,16 +366,33 @@ export const deleteProject = async (projectId: string): Promise<void> => {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
-    // Get all videos for this project and delete them first
+    // Get all videos for this project
     const videos = await getProjectVideos(projectId);
-    const deletePromises = videos.map(video => deleteVideo(projectId, video.id));
-    await Promise.all(deletePromises);
     
-    // Then delete the project
-    await deleteDoc(docRef);
+    // Prepare batch operations for all deletions
+    const operations = [
+      // Delete the project document
+      { type: 'delete', ref: docRef }
+    ];
+    
+    // Add all video deletions to the batch
+    videos.forEach(video => {
+      const videoRef = doc(firestore, PROJECTS_COLLECTION, projectId, VIDEOS_COLLECTION, video.id as string);
+      operations.push({ type: 'delete', ref: videoRef });
+    });
+    
+    // Execute all deletions in batches
+    await executeBatch(operations);
+    
+    console.log(`Successfully deleted project ${projectId} with ${videos.length} videos`);
   } catch (error) {
     console.error('Error deleting project:', error);
-    const errorResponse = createErrorResponse(error, `Failed to delete project with ID ${projectId}`);
+    // Use our improved error handling
+    const appError = globalHandleError(error);
+    const errorResponse = createErrorResponse(
+      error, 
+      `Failed to delete project with ID ${projectId}`
+    );
     throw errorResponse;
   }
 };

@@ -155,3 +155,32 @@ export interface ProjectStats {
   inAudioProduction: number;
   inAudioReview: number;
 }
+
+/**
+ * Type for updates to a project
+ */
+export type ProjectUpdate = {
+  name?: string;
+  description?: string;
+  sourceLanguage?: string;
+  targetLanguages?: string[];
+  currentPhase?: ProjectPhase;
+  owner?: string;
+  assignees?: string[];
+  updatedAt?: Date | FieldValue;
+} & {
+  [K in `phases.${ProjectPhase}`]?: PhaseStatus;
+}
+
+/**
+ * Type for video updates
+ */
+export type VideoUpdate = {
+  title?: string;
+  description?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  status?: string;
+  translatedFileContent?: string;
+  updatedAt?: Date | FieldValue;
+}
