@@ -34,7 +34,7 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#000000" />
         {/* Pre-connect to domains */}
         <link rel="preconnect" href="https://transflow2-0.web.app" />
         <link rel="preconnect" href="https://transflow2-0.firebaseapp.com" />
@@ -92,6 +92,11 @@ export default function RootLayout({
                   throw err;
                 });
               };
+            }
+            
+            // Redirect /dashboard to /projects for backwards compatibility
+            if (typeof window !== 'undefined' && window.location.pathname === '/dashboard') {
+              window.location.pathname = '/projects';
             }
           `}
         </Script>

@@ -4,10 +4,12 @@
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 const Header = () => {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     try {
@@ -17,42 +19,74 @@ const Header = () => {
     }
   };
 
+  // Check if a path is active
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
+
+  // Navigation items
+  const navItems = [
+    {
+      name: 'Projects',
+      href: '/projects',
+      requiresAuth: true
+    },
+    {
+      name: 'Team',
+      href: '/team',
+      requiresAuth: true
+    },
+    {
+      name: 'Settings',
+      href: '/settings',
+      requiresAuth: true
+    }
+  ];
+
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="bg-black text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-primary-dark">
+              <Link href="/projects" className="text-xl font-bold text-white">
                 TranslationFlow
               </Link>
             </div>
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link 
-                href="/" 
-                className="border-transparent text-gray-500 hover:border-primary hover:text-primary-dark inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Dashboard
-              </Link>
-              {user && (
-                <Link 
-                  href="/projects" 
-                  className="border-transparent text-gray-500 hover:border-primary hover:text-primary-dark inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Projects
-                </Link>
-              )}
+              {navItems.map(item => (
+                user || !item.requiresAuth ? (
+                  <Link 
+                    key={item.name}
+                    href={item.href} 
+                    className={`${
+                      isActive(item.href)
+                        ? 'border-primary text-white'
+                        : 'border-transparent text-gray-300 hover:border-gray-300 hover:text-white'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
+                  >
+                    {item.name}
+                  </Link>
+                ) : null
+              ))}
             </nav>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  {user.displayName || user.email}
-                </span>
+                <div className="flex items-center">
+                  <div className="h-8 w-8 rounded-full bg-gray-700 text-white flex items-center justify-center">
+                    <span className="text-xs font-medium">
+                      {user.displayName ? user.displayName[0].toUpperCase() : user.email?.[0].toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-200">
+                    {user.displayName || user.email}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
-                  className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  className="bg-gray-800 border border-gray-700 rounded-md py-1.5 px-3 text-sm font-medium text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   Logout
                 </button>
@@ -61,7 +95,7 @@ const Header = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/login"
-                  className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  className="bg-gray-800 border border-gray-700 rounded-md py-1.5 px-3 text-sm font-medium text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   Login
                 </Link>
@@ -79,7 +113,7 @@ const Header = () => {
           <div className="flex items-center sm:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
             >
               <span className="sr-only">Open main menu</span>
               {isMenuOpen ? (
@@ -98,40 +132,42 @@ const Header = () => {
 
       {/* Mobile menu, show/hide based on menu state */}
       {isMenuOpen && (
-        <div className="sm:hidden">
+        <div className="sm:hidden bg-gray-900">
           <div className="pt-2 pb-3 space-y-1">
-            <Link
-              href="/"
-              className="bg-white text-gray-800 block pl-3 pr-4 py-2 border-l-4 border-primary-dark text-base font-medium"
-            >
-              Dashboard
-            </Link>
-            {user && (
-              <Link
-                href="/projects"
-                className="bg-white text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium"
-              >
-                Projects
-              </Link>
-            )}
+            {navItems.map(item => (
+              user || !item.requiresAuth ? (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`${
+                    isActive(item.href)
+                      ? 'bg-gray-800 text-white border-primary'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white border-transparent'
+                  } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ) : null
+            ))}
           </div>
-          <div className="pt-4 pb-3 border-t border-gray-200">
+          <div className="pt-4 pb-3 border-t border-gray-700">
             {user ? (
               <div className="flex items-center px-4">
                 <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-primary-dark flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
                     <span className="text-white font-medium">
-                      {user.displayName ? user.displayName[0] : user.email?.[0]}
+                      {user.displayName ? user.displayName[0].toUpperCase() : user.email?.[0].toUpperCase()}
                     </span>
                   </div>
                 </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">{user.displayName || user.email}</div>
-                  {user.displayName && <div className="text-sm font-medium text-gray-500">{user.email}</div>}
+                  <div className="text-base font-medium text-white">{user.displayName || user.email}</div>
+                  {user.displayName && <div className="text-sm font-medium text-gray-400">{user.email}</div>}
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="ml-auto bg-white flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  className="ml-auto bg-gray-800 flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
                 >
                   <span className="sr-only">Logout</span>
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,7 +179,7 @@ const Header = () => {
               <div className="flex flex-col space-y-2 px-4">
                 <Link
                   href="/login"
-                  className="block px-4 py-2 text-sm text-center text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md"
+                  className="block px-4 py-2 text-sm text-center text-white bg-gray-800 hover:bg-gray-700 rounded-md"
                 >
                   Login
                 </Link>
