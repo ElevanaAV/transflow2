@@ -150,7 +150,8 @@ export interface ErrorResponse {
  */
 export interface ProjectStats {
   activeProjects: number;
-  pendingTranslations: number;
-  completedTranslations: number;
-  totalLanguages: number;
+  inTranslation: number;
+  inProofreading: number;
+  inAudioProduction: number;
+  inAudioReview: number;
 }

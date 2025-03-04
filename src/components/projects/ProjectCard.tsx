@@ -2,16 +2,19 @@
 'use client';
 
 import { memo } from 'react';
-import { Project } from '@/lib/types';
+import { Project, ProjectPhase, PhaseStatus } from '@/lib/types';
 import { 
   PHASE_LABELS, 
   STATUS_BG_COLORS, 
   PHASE_SEQUENCE, 
   formatDate,
   calculateProjectProgress,
-  STATUS_LABELS 
+  STATUS_LABELS,
+  NEXT_PHASE
 } from '@/lib/constants';
 import InteractiveCard from '@/components/ui/InteractiveCard';
+import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 
 interface ProjectCardProps {
   project: Project;
@@ -23,7 +26,8 @@ interface ProjectCardProps {
  * and its current status in the workflow
  */
 const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const { id, name, description, sourceLanguage, targetLanguages, currentPhase, phases } = project;
+  const router = useRouter();
+  const { id, name, description, sourceLanguage, targetLanguages, currentPhase, phases, owner, assignees } = project;
   
   // Calculate overall progress
   const progress = calculateProjectProgress(phases);
@@ -37,23 +41,95 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
       {PHASE_LABELS[currentPhase]}
     </span>
   );
+
+  // Determine the appropriate action based on current phase and status
+  const getNextActionLabel = () => {
+    if (phases[currentPhase] === PhaseStatus.NOT_STARTED) {
+      return `Start ${PHASE_LABELS[currentPhase]}`;
+    } else if (phases[currentPhase] === PhaseStatus.IN_PROGRESS) {
+      return `Continue ${PHASE_LABELS[currentPhase]}`;
+    } else if (NEXT_PHASE[currentPhase]) {
+      const nextPhase = NEXT_PHASE[currentPhase];
+      return `Start ${PHASE_LABELS[nextPhase as ProjectPhase]}`;
+    } else {
+      return 'View Project';
+    }
+  };
   
-  // Project footer with phase indicators and update time
+  // Handle the next action click
+  const handleNextAction = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/projects/${id}/phases/${currentPhase}`);
+  };
+  
+  // Get the next action button based on the current phase and status
+  const getNextActionButton = () => {
+    const label = getNextActionLabel();
+    return (
+      <Button
+        variant="primary"
+        size="sm"
+        className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+        onClick={handleNextAction}
+      >
+        {label}
+      </Button>
+    );
+  };
+  
+  // Project footer with modified info
   const projectFooter = (
-    <div className="flex justify-between items-center">
-      <div className="flex gap-2">
-        {PHASE_SEQUENCE.map((phase) => (
-          <div 
-            key={phase}
-            className={`w-2.5 h-2.5 rounded-full ${STATUS_BG_COLORS[phases[phase]]}`}
-            title={`${PHASE_LABELS[phase]}: ${STATUS_LABELS[phases[phase]]}`}
-            aria-hidden="true"
-          ></div>
-        ))}
+    <div className="space-y-3">
+      {/* Visual workflow progress indicator */}
+      <div className="flex justify-between items-center mb-2 relative pt-2">
+        <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -translate-y-1/2" aria-hidden="true"></div>
+        {PHASE_SEQUENCE.map((phase, index) => {
+          // Determine colors based on phase status
+          let bgColor = "bg-gray-200";
+          let textColor = "text-gray-500";
+          let ringColor = "";
+          
+          if (phases[phase] === PhaseStatus.COMPLETED) {
+            bgColor = "bg-green-500";
+            textColor = "text-white";
+          } else if (phases[phase] === PhaseStatus.IN_PROGRESS) {
+            bgColor = "bg-blue-500";
+            textColor = "text-white";
+          }
+          
+          // Add ring for current phase
+          if (phase === currentPhase) {
+            ringColor = "ring-2 ring-blue-500 ring-offset-2";
+          }
+          
+          return (
+            <div key={phase} className="flex flex-col items-center relative z-10">
+              <div 
+                className={`w-7 h-7 rounded-full ${bgColor} ${textColor} ${ringColor} flex items-center justify-center text-xs font-medium`}
+                title={`${PHASE_LABELS[phase]}: ${STATUS_LABELS[phases[phase]]}`}
+              >
+                {index + 1}
+              </div>
+              <span className="text-xs mt-1 font-medium hidden sm:block" style={{maxWidth: '60px', textAlign: 'center'}}>
+                {PHASE_LABELS[phase].split(' ')[0]}
+              </span>
+            </div>
+          );
+        })}
       </div>
-      <span className="text-xs text-gray-500">
-        Updated: {formatDate(project.updatedAt)}
-      </span>
+      
+      {/* Last updated and owner/assignee info */}
+      <div className="flex justify-between items-center text-xs text-gray-500">
+        <span>
+          Updated: {formatDate(project.updatedAt)}
+        </span>
+        {owner && (
+          <span className="truncate">
+            Owner: {owner.split('@')[0]}
+          </span>
+        )}
+      </div>
     </div>
   );
   
@@ -102,6 +178,9 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
             ></div>
           </div>
         </div>
+        
+        {/* Next Action Button */}
+        {getNextActionButton()}
       </div>
     </InteractiveCard>
   );
