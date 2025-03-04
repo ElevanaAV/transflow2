@@ -26,7 +26,7 @@ export default function ProjectForm({
     name: initialData?.name || '',
     description: initialData?.description || '',
     sourceLanguage: initialData?.sourceLanguage || DEFAULT_SOURCE_LANGUAGE,
-    targetLanguages: initialData?.targetLanguages || [],
+    targetLanguage: initialData?.targetLanguage || '',
   });
   
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormData, string>>>({});
@@ -50,28 +50,24 @@ export default function ProjectForm({
       setErrors(prev => ({ ...prev, sourceLanguage: undefined }));
     }
     
-    // Remove source language from target languages if it was selected
-    if (formData.targetLanguages.includes(value)) {
+    // Reset target language if it's the same as source language
+    if (formData.targetLanguage === value) {
       setFormData(prev => ({
         ...prev,
-        targetLanguages: prev.targetLanguages.filter(lang => lang !== value)
+        targetLanguage: ''
       }));
     }
   };
   
-  const handleTargetLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
-    
-    // Ensure source language is not included in target languages
-    const filteredOptions = selectedOptions.filter(
-      lang => lang !== formData.sourceLanguage
-    );
-    
-    setFormData(prev => ({ ...prev, targetLanguages: filteredOptions }));
+  const handleTargetLanguageChange = (value: string) => {
+    // Ensure source language is not selected as target language
+    if (value !== formData.sourceLanguage) {
+      setFormData(prev => ({ ...prev, targetLanguage: value }));
+    }
     
     // Clear error when field is edited
-    if (errors.targetLanguages) {
-      setErrors(prev => ({ ...prev, targetLanguages: undefined }));
+    if (errors.targetLanguage) {
+      setErrors(prev => ({ ...prev, targetLanguage: undefined }));
     }
   };
   
@@ -90,12 +86,12 @@ export default function ProjectForm({
       newErrors.sourceLanguage = 'Source language is required';
     }
     
-    if (formData.targetLanguages.length === 0) {
-      newErrors.targetLanguages = 'At least one target language is required';
+    if (!formData.targetLanguage) {
+      newErrors.targetLanguage = 'Target language is required';
     }
     
-    if (formData.targetLanguages.includes(formData.sourceLanguage)) {
-      newErrors.targetLanguages = 'Target languages cannot include the source language';
+    if (formData.targetLanguage === formData.sourceLanguage) {
+      newErrors.targetLanguage = 'Target language cannot be the same as source language';
     }
     
     setErrors(newErrors);
@@ -189,42 +185,16 @@ export default function ProjectForm({
         error={errors.sourceLanguage}
       />
       
-      <div>
-        <label htmlFor="targetLanguages" className="block text-sm font-medium text-gray-700 mb-1">
-          Target Languages
-          <span className="ml-1 text-red-500">*</span>
-        </label>
-        <select
-          id="targetLanguages"
-          name="targetLanguages"
-          multiple
-          value={formData.targetLanguages}
-          onChange={handleTargetLanguageChange}
-          className={`block w-full rounded-md border ${errors.targetLanguages ? 'border-red-500' : 'border-gray-300'} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          size={4}
-          disabled={isLoading}
-          aria-invalid={!!errors.targetLanguages}
-          aria-describedby={errors.targetLanguages ? "targetLanguages-error" : "targetLanguages-help"}
-        >
-          {/* We'll keep the multi-select for now since LanguageDropdown doesn't support multi-select yet */}
-          {/* In the future, we could enhance LanguageDropdown to support multi-select */}
-          {/* For now, we're getting the options from our language util instead of hard-coded array */}
-          {getSupportedLanguages().filter(language => language.code !== formData.sourceLanguage)
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(language => (
-              <option key={language.code} value={language.code}>
-                {language.name}
-                {language.nativeName && language.nativeName !== language.name 
-                  ? ` (${language.nativeName})` 
-                  : ''}
-              </option>
-            ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-500" id="targetLanguages-help">Hold Ctrl/Cmd to select multiple languages</p>
-        {errors.targetLanguages && (
-          <p className="mt-1 text-sm text-red-600" id="targetLanguages-error">{errors.targetLanguages}</p>
-        )}
-      </div>
+      <LanguageDropdown
+        label="Target Language"
+        value={formData.targetLanguage}
+        onChange={handleTargetLanguageChange}
+        placeholder="Select target language"
+        disabled={isLoading}
+        required={true}
+        error={errors.targetLanguage}
+        excludeCodes={[formData.sourceLanguage]} // Exclude the source language
+      />
     </Form>
   );
 }

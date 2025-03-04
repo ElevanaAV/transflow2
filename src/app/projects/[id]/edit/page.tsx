@@ -104,7 +104,9 @@ export default function EditProjectPage() {
     name: project.name,
     description: project.description,
     sourceLanguage: project.sourceLanguage,
-    targetLanguages: project.targetLanguages,
+    targetLanguage: project.targetLanguages && project.targetLanguages.length > 0 
+      ? project.targetLanguages[0] 
+      : '', // Take the first target language if available
   };
 
   return (

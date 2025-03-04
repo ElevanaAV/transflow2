@@ -93,7 +93,7 @@ export interface ProjectFormData {
   name: string;
   description: string;
   sourceLanguage: string;
-  targetLanguages: string[];
+  targetLanguage: string; // Changed from array to single string
 }
 
 /**

@@ -115,6 +115,8 @@ export const createProject = async (projectData: ProjectFormData, userId: string
     // Initialize project with default values for phases
     const newProject: Omit<Project, 'id'> = {
       ...projectData,
+      // Convert single targetLanguage to array for backward compatibility
+      targetLanguages: projectData.targetLanguage ? [projectData.targetLanguage] : [],
       createdBy: userId,
       owner: userId,
       assignees: [userId], // Keep for backward compatibility

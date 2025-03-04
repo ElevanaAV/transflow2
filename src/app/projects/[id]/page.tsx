@@ -202,22 +202,19 @@ export default function ProjectDetailPage() {
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Target Languages</h3>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {project.targetLanguages.map((languageCode, index) => {
-                      const language = getLanguageByCode(languageCode);
-                      return (
-                        <span 
-                          key={index}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                          title={language?.nativeName || ''}
-                        >
-                          {language?.name || languageCode}
-                          {language?.direction === 'rtl' && ' (RTL)'}
-                        </span>
-                      );
-                    })}
-                  </div>
+                  <h3 className="text-sm font-medium text-gray-500">Target Language</h3>
+                  <p className="text-base font-medium">
+                    {project.targetLanguages && project.targetLanguages.length > 0 ? (
+                      <>
+                        {getLanguageByCode(project.targetLanguages[0])?.name || project.targetLanguages[0]}
+                        {getLanguageByCode(project.targetLanguages[0])?.direction === 'rtl' && (
+                          <span className="ml-2 text-xs text-amber-600">(RTL)</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-400">No target language selected</span>
+                    )}
+                  </p>
                 </div>
               </div>
               
