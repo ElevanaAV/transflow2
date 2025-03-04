@@ -90,7 +90,7 @@ export default function ProjectPhasePage() {
             {error || 'Project not found'}
           </div>
           <button
-            onClick={() => router.push('/projects')}
+            onClick={() => router.push('/projects/overview')}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Back to Projects
@@ -120,8 +120,7 @@ export default function ProjectPhasePage() {
   }
 
   const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Projects', href: '/projects' },
+    { label: 'Projects', href: '/projects/overview' },
     { label: project.name, href: `/projects/${id}` },
     { label: PHASE_LABELS[currentPhase] },
   ];

@@ -34,8 +34,7 @@ export default function NewProjectPage() {
   };
 
   const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Projects', href: '/projects' },
+    { label: 'Projects', href: '/projects/overview' },
     { label: 'New Project' },
   ];
 
@@ -55,7 +54,7 @@ export default function NewProjectPage() {
           
           <ProjectForm
             onSubmit={handleCreateProject}
-            onCancel={() => router.push('/projects')}
+            onCancel={() => router.push('/projects/overview')}
             isLoading={isCreating}
           />
         </div>

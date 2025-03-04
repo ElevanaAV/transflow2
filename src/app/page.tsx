@@ -11,10 +11,10 @@ export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Redirect to dashboard if authenticated
+  // Redirect to projects overview if authenticated
   useEffect(() => {
     if (user && !loading) {
-      router.push('/dashboard');
+      router.push('/projects/overview');
     }
   }, [user, loading, router]);
 
@@ -31,7 +31,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <LoadingSpinner size="md" />
-        <p className="ml-3 text-gray-500">Redirecting to dashboard...</p>
+        <p className="ml-3 text-gray-500">Redirecting to projects...</p>
       </div>
     );
   }

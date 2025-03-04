@@ -2,18 +2,38 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    // Helper function to verify auth
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Allow all operations for authenticated users
+    // This is a development setting, should be replaced with proper rules later
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 4, 2);
+      allow read, write: if isSignedIn();
+    }
+    
+    // Allow specific access to projects collection
+    match /projects/{projectId} {
+      // User can read projects they created, own, or are assigned to
+      allow read: if isSignedIn() && 
+                   (resource.data.createdBy == request.auth.uid || 
+                    resource.data.owner == request.auth.uid || 
+                    request.auth.uid in resource.data.assignees);
+      
+      // User can create projects (owner and assignees will be set to the creator)
+      allow create: if isSignedIn() && 
+                    request.resource.data.createdBy == request.auth.uid;
+      
+      // User can update projects they own
+      allow update: if isSignedIn() && 
+                    (resource.data.owner == request.auth.uid || 
+                     resource.data.createdBy == request.auth.uid);
+                     
+      // User can delete projects they own
+      allow delete: if isSignedIn() && 
+                    (resource.data.owner == request.auth.uid || 
+                     resource.data.createdBy == request.auth.uid);
     }
   }
 }

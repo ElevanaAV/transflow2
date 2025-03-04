@@ -27,8 +27,29 @@ export default function ProjectDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        const projectData = await getProject(id as string);
-        setProject(projectData);
+        
+        // Try to fetch the project a few times with a delay between tries
+        let attempts = 0;
+        const maxAttempts = 3;
+        let projectData = null;
+        
+        while (attempts < maxAttempts && !projectData) {
+          try {
+            projectData = await getProject(id as string);
+          } catch (err) {
+            console.log(`Attempt ${attempts + 1} failed, retrying...`);
+            attempts++;
+            if (attempts >= maxAttempts) throw err;
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        if (projectData) {
+          setProject(projectData);
+        } else {
+          throw new Error('Failed to load project after multiple attempts');
+        }
       } catch (err) {
         console.error('Error fetching project:', err);
         setError('Failed to load project details. Please try again.');
@@ -62,8 +83,7 @@ export default function ProjectDetailPage() {
   };
 
   const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Projects', href: '/projects' },
+    { label: 'Projects', href: '/projects/overview' },
     { label: project?.name || 'Project Details' },
   ];
 
@@ -88,7 +108,7 @@ export default function ProjectDetailPage() {
             {error || 'Project not found'}
           </div>
           <button
-            onClick={() => router.push('/projects')}
+            onClick={() => router.push('/projects/overview')}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Back to Projects

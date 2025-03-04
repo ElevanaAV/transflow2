@@ -162,8 +162,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Subscribe to auth state changes when the component mounts
   useEffect(() => {
+    console.log('Setting up auth state listener');
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('Auth state changed:', currentUser ? `User ID: ${currentUser.uid}` : 'No user');
       setUser(currentUser);
+      setLoading(false);
+    }, (error) => {
+      console.error('Auth state change error:', error);
       setLoading(false);
     });
 

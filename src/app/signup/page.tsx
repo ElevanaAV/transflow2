@@ -41,7 +41,7 @@ function SignupContent() {
   // Check if user is already logged in
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push('/projects/overview');
     }
   }, [user, loading, router]);
 

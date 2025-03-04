@@ -64,8 +64,7 @@ export default function EditProjectPage() {
   };
 
   const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Projects', href: '/projects' },
+    { label: 'Projects', href: '/projects/overview' },
     { label: project?.name || 'Project', href: `/projects/${id}` },
     { label: 'Edit' },
   ];
@@ -91,7 +90,7 @@ export default function EditProjectPage() {
             {error || 'Project not found'}
           </div>
           <button
-            onClick={() => router.push('/projects')}
+            onClick={() => router.push('/projects/overview')}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Back to Projects

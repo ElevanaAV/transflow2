@@ -134,29 +134,64 @@ export default function ProjectsOverview() {
 
   // Fetch projects and calculate stats
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
-      if (!user) return;
+      if (!user?.uid) return;
       
       try {
-        setIsLoading(true);
-        setError(null);
+        if (isMounted) {
+          setIsLoading(true);
+          setError(null);
+        }
         
-        // Fetch user projects
-        const userProjects = await getUserProjects(user.uid);
-        setProjects(userProjects);
+        // Try to fetch projects a few times with a delay between attempts
+        let attempts = 0;
+        const maxAttempts = 3;
+        let userProjects = null;
         
-        // Calculate statistics
-        const projectStats = calculateProjectStats(userProjects);
-        setStats(projectStats);
+        console.log('Attempting to fetch projects with user ID:', user.uid);
+        
+        while (attempts < maxAttempts && !userProjects && isMounted) {
+          try {
+            userProjects = await getUserProjects(user.uid);
+            console.log('Projects fetched successfully:', userProjects.length);
+          } catch (err) {
+            console.error(`Attempt ${attempts + 1} failed:`, err);
+            attempts++;
+            if (attempts >= maxAttempts) throw err;
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        if (userProjects && isMounted) {
+          setProjects(userProjects);
+          
+          // Calculate statistics
+          const projectStats = calculateProjectStats(userProjects);
+          setStats(projectStats);
+        } else if (isMounted) {
+          throw new Error('Failed to load projects after multiple attempts');
+        }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('Failed to load project data. Please try again.');
+        if (isMounted) {
+          setError('Failed to load project data. Please try again.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, [user, calculateProjectStats]);
 
   return (

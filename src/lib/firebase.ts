@@ -15,15 +15,14 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Fallback configuration for development environments
+// Development fallback configuration (does not contain actual keys)
 const fallbackConfig = {
-  apiKey: "AIzaSyDummyKeyForDevelopment",
-  authDomain: "translation-flow-dev.firebaseapp.com",
-  projectId: "translation-flow-dev",
-  storageBucket: "translation-flow-dev.appspot.com",
+  apiKey: "FIREBASE_API_KEY_NEEDED",
+  authDomain: "transflow2-0.firebaseapp.com", 
+  projectId: "transflow2-0",
+  storageBucket: "transflow2-0.appspot.com",
   messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000000000",
-  measurementId: "G-0000000000",
+  appId: "1:000000000000:web:0000000000000000000000"
 };
 
 // Initialize Firebase singleton
@@ -40,10 +39,13 @@ function initializeFirebase() {
   try {
     // Check if Firebase has already been initialized
     if (!getApps().length) {
-      // Use environment variables if available, otherwise use fallback
-      const config = process.env.NEXT_PUBLIC_FIREBASE_API_KEY 
-        ? firebaseConfig 
-        : fallbackConfig;
+      // Always use environment variables in production
+      // The fallback should never be used in production
+      const config = firebaseConfig;
+      
+      // Log which configuration is being used (without sensitive values)
+      console.log('Firebase config source:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Environment variables' : 'Missing env vars!');
+      console.log('Firebase project ID:', config.projectId || 'undefined');
       
       // Initialize the Firebase app
       firebaseApp = initializeApp(config);

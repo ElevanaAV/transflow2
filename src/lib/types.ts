@@ -44,6 +44,8 @@ export interface ProjectBase {
   createdAt: Date | number | FieldValue;
   updatedAt: Date | number | FieldValue;
   createdBy: string;
+  owner: string;
+  assignees: string[];
   phases: ProjectPhases;
   currentPhase: ProjectPhase;
 }
@@ -51,8 +53,20 @@ export interface ProjectBase {
 /**
  * Project with optional ID (for new projects)
  */
-export interface Project extends ProjectBase {
+export interface Project extends Partial<ProjectBase> {
   id?: string;
+  name: string;
+  description: string;
+  sourceLanguage: string;
+  targetLanguages: string[];
+  createdBy: string;
+  phases: ProjectPhases;
+  currentPhase: ProjectPhase;
+  createdAt: Date | number | FieldValue;
+  updatedAt: Date | number | FieldValue;
+  // These fields might be missing in existing data
+  owner?: string;
+  assignees?: string[];
 }
 
 /**

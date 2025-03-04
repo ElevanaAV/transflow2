@@ -19,7 +19,8 @@
       "minInstances": 0,
       "cpus": 1,
       "memory": "2GB",
-      "timeoutSeconds": 60
+      "timeoutSeconds": 60,
+      "invoker": "public"
     },
     "headers": [
       {
@@ -45,6 +46,26 @@
       {
         "source": "/__/auth/**",
         "destination": "/__/auth/index.html"
+      },
+      {
+        "source": "/projects/*",
+        "function": "ssrtransflow20"
+      },
+      {
+        "source": "/projects/*/edit",
+        "function": "ssrtransflow20"
+      },
+      {
+        "source": "/projects/*/phases/*",
+        "function": "ssrtransflow20"
+      },
+      {
+        "source": "/dashboard",
+        "destination": "/projects/overview"
+      },
+      {
+        "source": "**",
+        "function": "ssrtransflow20"
       }
     ]
   },

@@ -42,11 +42,15 @@ const convertToProject = (doc: DocumentSnapshot | QueryDocumentSnapshot): Projec
     throw new Error('Document data is empty');
   }
   
+  // Add missing fields with defaults
   return {
     id: doc.id,
     ...data,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
+    // Ensure these fields exist with defaults if missing
+    owner: data.owner || data.createdBy,
+    assignees: data.assignees || [data.createdBy]
   } as Project;
 };
 
@@ -115,6 +119,8 @@ export const createProject = async (projectData: ProjectFormData, userId: string
     const newProject: Omit<Project, 'id'> = {
       ...projectData,
       createdBy: userId,
+      owner: userId,
+      assignees: [userId],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       currentPhase: ProjectPhase.SUBTITLE_TRANSLATION,
@@ -162,15 +168,80 @@ export const getProject = async (projectId: string): Promise<Project> => {
  * Gets all projects for a user
  */
 export const getUserProjects = async (userId: string): Promise<Project[]> => {
+  if (!userId) {
+    console.error('getUserProjects called with empty userId');
+    throw new Error('User ID is required to fetch projects');
+  }
+
   try {
+    console.log(`Querying Firestore for projects for user ID=${userId}`);
+    
+    // Simplified approach - just look for createdBy since that's what we know exists
     const q = query(
       collection(firestore, PROJECTS_COLLECTION),
-      where('createdBy', '==', userId),
-      orderBy('updatedAt', 'desc')
+      where('createdBy', '==', userId)
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(convertToProject);
+    console.log(`Got ${querySnapshot.size} projects from Firestore`);
+    
+    const projects: Project[] = [];
+    
+    // Process each document and add owner/assignees if missing
+    querySnapshot.docs.forEach(doc => {
+      try {
+        const data = doc.data();
+        console.log(`Processing project: ${doc.id}`, data);
+        
+        // Fix missing fields in the data
+        const project = {
+          ...data,
+          id: doc.id,
+          // Convert timestamps
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(),
+          // Add missing fields with defaults if not present
+          owner: data.owner || data.createdBy,
+          assignees: data.assignees || [data.createdBy]
+        } as Project;
+        
+        projects.push(project);
+        
+        // If fields are missing in the database, update them
+        if (!data.owner || !data.assignees) {
+          const projectRef = doc.ref;
+          const updates: Record<string, any> = {};
+          
+          if (!data.owner) {
+            updates.owner = data.createdBy;
+          }
+          
+          if (!data.assignees) {
+            updates.assignees = [data.createdBy];
+          }
+          
+          // Update the document with the missing fields
+          if (Object.keys(updates).length > 0) {
+            console.log(`Updating project ${doc.id} with missing fields:`, updates);
+            updateDoc(projectRef, updates)
+              .then(() => console.log(`Updated project ${doc.id} with missing fields`))
+              .catch(err => console.error(`Failed to update project ${doc.id}:`, err));
+          }
+        }
+      } catch (err) {
+        console.error(`Error processing project ${doc.id}:`, err);
+      }
+    });
+    
+    // Sort by updatedAt in descending order
+    projects.sort((a, b) => {
+      const dateA = a.updatedAt instanceof Date ? a.updatedAt : new Date();
+      const dateB = b.updatedAt instanceof Date ? b.updatedAt : new Date();
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    console.log(`Returning ${projects.length} projects in total`);
+    return projects;
   } catch (error) {
     console.error('Error fetching user projects:', error);
     const errorResponse = createErrorResponse(error, 'Failed to fetch user projects');

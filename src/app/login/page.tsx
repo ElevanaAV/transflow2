@@ -32,7 +32,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+  const redirectTo = searchParams.get('redirectTo') || '/projects/overview';
 
   // Check if user is already logged in
   useEffect(() => {
