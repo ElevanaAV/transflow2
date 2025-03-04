@@ -92,7 +92,10 @@ export default function ProjectsOverview() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [filterActive, setFilterActive] = useState(false);
+  const [sortOption, setSortOption] = useState<string | null>(null);
   const [stats, setStats] = useState<ProjectStats>({
     activeProjects: 0,
     pendingTranslations: 0,
@@ -134,6 +137,50 @@ export default function ProjectsOverview() {
     };
   }, []);
 
+  // Function to filter projects by in-progress status
+  const filterInProgressProjects = useCallback(() => {
+    setFilterActive(prevState => {
+      const newState = !prevState;
+      if (newState) {
+        // Filter for projects with any phase in progress
+        const filtered = projects.filter(project => {
+          return Object.values(project.phases).some(status => status === PhaseStatus.IN_PROGRESS);
+        });
+        setFilteredProjects(filtered);
+      } else {
+        // Reset to show all projects
+        setFilteredProjects(projects);
+      }
+      return newState;
+    });
+  }, [projects]);
+
+  // Function to sort projects
+  const sortProjects = useCallback(() => {
+    setSortOption(prevOption => {
+      // Cycle through sort options: null -> name -> date -> null
+      let newOption: string | null = null;
+      
+      if (prevOption === null) {
+        newOption = 'name';
+      } else if (prevOption === 'name') {
+        newOption = 'date';
+      }
+      
+      const projectsToSort = filterActive ? filteredProjects : projects;
+      let sorted = [...projectsToSort];
+      
+      if (newOption === 'name') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (newOption === 'date') {
+        sorted.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      }
+      
+      setFilteredProjects(sorted);
+      return newOption;
+    });
+  }, [projects, filteredProjects, filterActive]);
+
   // Fetch projects and calculate stats
   useEffect(() => {
     let isMounted = true;
@@ -169,6 +216,7 @@ export default function ProjectsOverview() {
         
         if (userProjects && isMounted) {
           setProjects(userProjects);
+          setFilteredProjects(userProjects);
           
           // Calculate statistics
           const projectStats = calculateProjectStats(userProjects);
@@ -334,30 +382,33 @@ export default function ProjectsOverview() {
                     New Project
                   </Button>
                   <Button 
-                    variant="outline" 
-                    className="mr-2"
+                    variant={filterActive ? "primary" : "outline"}
+                    className={`mr-2 ${filterActive ? "bg-blue-600 hover:bg-blue-700" : ""}`}
                     leftIcon={
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
                       </svg>
                     }
+                    onClick={filterInProgressProjects}
                   >
-                    Filter
+                    {filterActive ? "All Projects" : "In Progress"}
                   </Button>
                   <Button
-                    variant="outline"
+                    variant={sortOption ? "primary" : "outline"}
+                    className={sortOption ? "bg-blue-600 hover:bg-blue-700" : ""}
                     leftIcon={
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
                       </svg>
                     }
+                    onClick={sortProjects}
                   >
-                    Sort
+                    {sortOption === 'name' ? 'Sort: Name' : sortOption === 'date' ? 'Sort: Date' : 'Sort'}
                   </Button>
                 </div>
               </div>
               <div className="px-4 py-5 sm:p-6">
-                <ProjectsDisplay projects={projects} router={router} />
+                <ProjectsDisplay projects={filterActive || sortOption ? filteredProjects : projects} router={router} />
               </div>
             </div>
 
