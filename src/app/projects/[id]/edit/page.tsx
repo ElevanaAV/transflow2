@@ -44,6 +44,9 @@ export default function EditProjectPage() {
     if (!user || !id || !project) return;
     
     try {
+      console.log('Updating project with data:', projectData);
+      console.log('Project ID:', id);
+      
       setIsUpdating(true);
       setError(null);
       
@@ -57,11 +60,34 @@ export default function EditProjectPage() {
         currentPhase: project.currentPhase,
       });
       
-      // Redirect to the project page
-      router.push(`/projects/${updatedProject.id}`);
+      console.log('Project updated successfully:', updatedProject);
+      
+      // Redirect to the project page with fallbacks
+      try {
+        // Try Next.js router first
+        router.push(`/projects/${updatedProject.id}`);
+        
+        // Fallback - use a timeout to ensure the navigation happens
+        setTimeout(() => {
+          try {
+            // If still on the page, try window.location as a fallback
+            window.location.href = `/projects/${updatedProject.id}`;
+          } catch (navError) {
+            console.error('Error redirecting with window.location:', navError);
+          }
+        }, 500);
+      } catch (routerError) {
+        console.error('Error with router.push:', routerError);
+        // Immediate fallback
+        window.location.href = `/projects/${updatedProject.id}`;
+      }
     } catch (err) {
       console.error('Error updating project:', err);
-      setError('Failed to update project. Please try again.');
+      if (err instanceof Error) {
+        setError(`Failed to update project: ${err.message}`);
+      } else {
+        setError('Failed to update project. Please try again.');
+      }
       setIsUpdating(false);
     }
   };
@@ -130,9 +156,35 @@ export default function EditProjectPage() {
           <ProjectForm
             initialData={initialFormData}
             onSubmit={handleUpdateProject}
-            onCancel={() => router.push(`/projects/${id}`)}
+            onCancel={() => {
+              console.log('Cancel button clicked in edit project page');
+              try {
+                // Try Next.js routing first
+                router.push(`/projects/${id}`);
+                
+                // Fallback - use a timeout to try window.location
+                setTimeout(() => {
+                  try {
+                    window.location.href = `/projects/${id}`;
+                  } catch (error) {
+                    console.error('Error navigating with window.location:', error);
+                  }
+                }, 100);
+              } catch (error) {
+                console.error('Error navigating with router:', error);
+                // Immediate fallback
+                window.location.href = `/projects/${id}`;
+              }
+            }}
             isLoading={isUpdating}
           />
+          
+          {/* Fallback navigation link */}
+          <div className="mt-4 text-center">
+            <a href={`/projects/${id}`} className="text-sm text-gray-500 hover:text-gray-700">
+              Return to project details
+            </a>
+          </div>
         </div>
       </div>
     </AuthGuard>
