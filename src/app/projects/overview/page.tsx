@@ -29,6 +29,8 @@ const ProjectsDisplay = ({ projects, router }: { projects: Project[], router: Ap
           <p className="mt-1 text-sm text-gray-500">Get started by creating a new translation project.</p>
           <div className="mt-6">
             <Button
+              variant="primary"
+              className="bg-blue-600 hover:bg-blue-700"
               leftIcon={
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -319,6 +321,19 @@ export default function ProjectsOverview() {
                 <h2 className="text-xl font-semibold text-gray-900">Your Projects</h2>
                 <div className="flex">
                   <Button 
+                    variant="primary"
+                    size="md"
+                    className="mr-2 bg-blue-600 hover:bg-blue-700"
+                    leftIcon={
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                    }
+                    onClick={() => router.push('/projects/new')}
+                  >
+                    New Project
+                  </Button>
+                  <Button 
                     variant="outline" 
                     className="mr-2"
                     leftIcon={
@@ -353,7 +368,7 @@ export default function ProjectsOverview() {
               </div>
               <div className="px-4 py-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link href="/projects/new">
-                  <Button variant="outline" fullWidth leftIcon={
+                  <Button variant="primary" fullWidth className="bg-blue-600 hover:bg-blue-700" leftIcon={
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>

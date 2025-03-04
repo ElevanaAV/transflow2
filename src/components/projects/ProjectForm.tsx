@@ -116,6 +116,8 @@ export default function ProjectForm({
   const submitButton = (
     <Button
       type="submit"
+      variant="primary"
+      className="bg-blue-600 hover:bg-blue-700 text-white"
       isLoading={isLoading}
     >
       {initialData?.name ? 'Update Project' : 'Create Project'}
