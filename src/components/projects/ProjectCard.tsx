@@ -165,7 +165,7 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
         setAssigneeName('Updating...');
         
         // Update assignee for current phase
-        const phaseAssignments = { ...project.phaseAssignments } || {};
+        const phaseAssignments = { ...(project.phaseAssignments || {}) };
         phaseAssignments[currentPhase] = userId;
         
         await updateProject(id || '', { phaseAssignments });

@@ -90,7 +90,7 @@ export default function ProjectSidebar({ project }: ProjectSidebarProps) {
       <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-gray-100">
         {expanded ? (
           <div className="text-lg font-semibold text-primary-dark truncate">
-            {project?.title || 'Project'}
+            {project?.name || 'Project'}
           </div>
         ) : (
           <div className="text-lg font-semibold text-primary-dark">
