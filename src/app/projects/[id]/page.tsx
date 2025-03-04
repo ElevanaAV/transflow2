@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getProject, updateProjectPhaseStatus, assignUserToPhase } from '@/lib/services/projectService';
 import { getUsersForPhaseAssignment } from '@/lib/services/userService';
 import { Project, ProjectPhase, PhaseStatus, UserProfile, UserRole } from '@/lib/types';
+import { getLanguageByCode } from '@/lib/languages';
 import WorkflowPhaseIndicator from '@/components/projects/WorkflowPhaseIndicator';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -193,19 +194,29 @@ export default function ProjectDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Source Language</h3>
-                  <p className="text-base font-medium">{project.sourceLanguage}</p>
+                  <p className="text-base font-medium">
+                    {getLanguageByCode(project.sourceLanguage)?.name || project.sourceLanguage}
+                    {getLanguageByCode(project.sourceLanguage)?.direction === 'rtl' && (
+                      <span className="ml-2 text-xs text-amber-600">(RTL)</span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Target Languages</h3>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {project.targetLanguages.map((language, index) => (
-                      <span 
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                      >
-                        {language}
-                      </span>
-                    ))}
+                    {project.targetLanguages.map((languageCode, index) => {
+                      const language = getLanguageByCode(languageCode);
+                      return (
+                        <span 
+                          key={index}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                          title={language?.nativeName || ''}
+                        >
+                          {language?.name || languageCode}
+                          {language?.direction === 'rtl' && ' (RTL)'}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

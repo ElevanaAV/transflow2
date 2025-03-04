@@ -6,26 +6,8 @@ import { ProjectFormData } from '@/lib/types';
 import Form from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import FormInput from '@/components/ui/FormInput';
-
-interface ProjectFormProps {
-  initialData?: Partial<ProjectFormData>;
-  onSubmit: (data: ProjectFormData) => void;
-  onCancel?: () => void;
-  isLoading?: boolean;
-}
-
-const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'it', label: 'Italian' },
-  { value: 'pt', label: 'Portuguese' },
-  { value: 'ru', label: 'Russian' },
-  { value: 'zh', label: 'Chinese' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'ko', label: 'Korean' },
-];
+import LanguageDropdown from '@/components/ui/LanguageDropdown';
+import { DEFAULT_SOURCE_LANGUAGE, getSupportedLanguages } from '@/lib/languages';
 
 export default function ProjectForm({ 
   initialData, 
@@ -36,7 +18,7 @@ export default function ProjectForm({
   const [formData, setFormData] = useState<ProjectFormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    sourceLanguage: initialData?.sourceLanguage || 'en',
+    sourceLanguage: initialData?.sourceLanguage || DEFAULT_SOURCE_LANGUAGE,
     targetLanguages: initialData?.targetLanguages || [],
   });
   
@@ -53,9 +35,32 @@ export default function ProjectForm({
     }
   };
   
+  const handleSourceLanguageChange = (value: string) => {
+    setFormData(prev => ({ ...prev, sourceLanguage: value }));
+    
+    // Clear error when field is edited
+    if (errors.sourceLanguage) {
+      setErrors(prev => ({ ...prev, sourceLanguage: undefined }));
+    }
+    
+    // Remove source language from target languages if it was selected
+    if (formData.targetLanguages.includes(value)) {
+      setFormData(prev => ({
+        ...prev,
+        targetLanguages: prev.targetLanguages.filter(lang => lang !== value)
+      }));
+    }
+  };
+  
   const handleTargetLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
-    setFormData(prev => ({ ...prev, targetLanguages: selectedOptions }));
+    
+    // Ensure source language is not included in target languages
+    const filteredOptions = selectedOptions.filter(
+      lang => lang !== formData.sourceLanguage
+    );
+    
+    setFormData(prev => ({ ...prev, targetLanguages: filteredOptions }));
     
     // Clear error when field is edited
     if (errors.targetLanguages) {
@@ -164,32 +169,15 @@ export default function ProjectForm({
         )}
       </div>
       
-      <div>
-        <label htmlFor="sourceLanguage" className="block text-sm font-medium text-gray-700 mb-1">
-          Source Language
-          <span className="ml-1 text-red-500">*</span>
-        </label>
-        <select
-          id="sourceLanguage"
-          name="sourceLanguage"
-          value={formData.sourceLanguage}
-          onChange={handleChange}
-          className={`block w-full rounded-md border ${errors.sourceLanguage ? 'border-red-500' : 'border-gray-300'} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          disabled={isLoading}
-          aria-invalid={!!errors.sourceLanguage}
-          aria-describedby={errors.sourceLanguage ? "sourceLanguage-error" : undefined}
-        >
-          <option value="">Select source language</option>
-          {languageOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {errors.sourceLanguage && (
-          <p className="mt-1 text-sm text-red-600" id="sourceLanguage-error">{errors.sourceLanguage}</p>
-        )}
-      </div>
+      <LanguageDropdown
+        label="Source Language"
+        value={formData.sourceLanguage}
+        onChange={handleSourceLanguageChange}
+        placeholder="Select source language"
+        disabled={isLoading}
+        required={true}
+        error={errors.sourceLanguage}
+      />
       
       <div>
         <label htmlFor="targetLanguages" className="block text-sm font-medium text-gray-700 mb-1">
@@ -208,11 +196,17 @@ export default function ProjectForm({
           aria-invalid={!!errors.targetLanguages}
           aria-describedby={errors.targetLanguages ? "targetLanguages-error" : "targetLanguages-help"}
         >
-          {languageOptions
-            .filter(option => option.value !== formData.sourceLanguage)
-            .map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+          {/* We'll keep the multi-select for now since LanguageDropdown doesn't support multi-select yet */}
+          {/* In the future, we could enhance LanguageDropdown to support multi-select */}
+          {/* For now, we're getting the options from our language util instead of hard-coded array */}
+          {getSupportedLanguages().filter(language => language.code !== formData.sourceLanguage)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(language => (
+              <option key={language.code} value={language.code}>
+                {language.name}
+                {language.nativeName && language.nativeName !== language.name 
+                  ? ` (${language.nativeName})` 
+                  : ''}
               </option>
             ))}
         </select>
