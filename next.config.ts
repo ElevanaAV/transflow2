@@ -4,30 +4,47 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: {
-    // Disable eslint during build as we've already fixed the issues
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Disable typescript during build as we've already fixed the type issues
     ignoreBuildErrors: true,
   },
-  // Add proper asset prefix configuration for Firebase Hosting
-  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : undefined,
-  // Configure output for Firebase Hosting compatibility
+  // Optimize for Firebase Hosting with 2nd Gen Functions
   output: 'standalone',
-  // Cache static assets for better performance
-  staticPageGenerationTimeout: 300,
+  // Reduce static generation timeout to avoid deployment timeouts
+  staticPageGenerationTimeout: 120,
   // Optimize images
   images: {
     domains: ['transflow2-0.web.app', 'transflow2-0.firebaseapp.com'],
+    // Always optimize images in production
     unoptimized: process.env.NODE_ENV !== 'production',
+    // Limit image sizes to reduce bundle
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96, 128],
   },
-  // Add trailing slash for better compatibility with Firebase Hosting
-  trailingSlash: false,
-  // Enable optimizations for production
-  // swcMinify is deprecated in Next.js 13+, using compiler options instead
+  // Disable unnecessary features for SSR function
+  experimental: {
+    // Reduce the size of server components
+    serverComponentsExternalPackages: ['firebase'],
+    // Optimize page loading
+    optimizeCss: true,
+    // Optimize bundle size
+    optimizeServerReact: true,
+  },
+  // Remove console logs in production to reduce bundle size
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  // Configure webpack for optimal bundle size
+  webpack: (config, { dev, isServer }) => {
+    // Optimize chunks
+    if (!dev && isServer) {
+      config.optimization.minimize = true;
+    }
+
+    return config;
   },
 };
 

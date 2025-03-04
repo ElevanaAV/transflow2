@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { getUserProjects } from '@/lib/services/projectService';
-import { Project, PhaseStatus, ProjectPhase, ProjectStats } from '@/lib/types';
-import { PHASE_LABELS, PHASE_SEQUENCE } from '@/lib/constants';
-import AuthGuard from '@/components/auth/AuthGuard';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Button } from '@/components/ui/Button';
+import { useAuth } from '../../context/AuthContext';
+import { getUserProjects } from '../../lib/services/projectService';
+import { Project, PhaseStatus, ProjectPhase, ProjectStats } from '../../lib/types';
+import { PHASE_LABELS, PHASE_SEQUENCE } from '../../lib/constants';
+import AuthGuard from '../../components/auth/AuthGuard';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { Button } from '../../components/ui/Button';
 import Link from 'next/link';
-import ProjectCard from '@/components/projects/ProjectCard';
+import ProjectCard from '../../components/projects/ProjectCard';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 /**

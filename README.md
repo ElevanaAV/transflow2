@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TranslationFlow
+
+An application to manage and streamline translation workflows.
+
+## Features
+
+- User authentication
+- Project management
+- Workflow phases tracking
+- Multi-language support
+- Dashboard with project statistics
+- File management for video content
+
+## Technologies Used
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS
+- **Authentication & Database**: Firebase (Authentication, Firestore)
+- **Storage**: Firebase Storage
+- **UI Component Library**: Custom components with Tailwind
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20 or higher
+- npm or yarn
+- Firebase account
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/ElevanaAV/transflow2.git
+cd transflow2
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Fill in your Firebase configuration values in .env
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project includes a deployment script:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Deploy to Firebase
+npm run deploy
+```
 
-## Learn More
+The script:
+1. Checks for the correct Node version
+2. Builds the Next.js app
+3. Deploys to Firebase
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/src/app`: Next.js app router pages
+- `/src/components`: Reusable React components
+- `/src/context`: React context providers
+- `/src/lib`: Utilities, services, and types
+- `/public`: Static assets
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Firebase Configuration
 
-## Deploy on Vercel
+This application uses Firebase for:
+- Authentication
+- Firestore database
+- Cloud Storage
+- Hosting
+- Server-side functions for dynamic routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Make sure to set up your Firebase project with the necessary services enabled.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+This project is proprietary and confidential.

@@ -8,11 +8,39 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/.next/cache/**",
+      "**/src/**/*.test.js",
+      "**/src/**/*.spec.js"
     ],
     "frameworksBackend": {
-      "region": "us-west1"
+      "region": "us-west1",
+      "maxInstances": 10,
+      "minInstances": 0,
+      "cpus": 1,
+      "memory": "2GB",
+      "timeoutSeconds": 60
     },
+    "headers": [
+      {
+        "source": "/_next/static/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/static/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "/__/auth/**",
@@ -22,5 +50,22 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    }
   }
 }

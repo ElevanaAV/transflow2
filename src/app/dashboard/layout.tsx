@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import Sidebar from '@/components/layout/Sidebar';
-import AuthGuard from '@/components/auth/AuthGuard';
-import { useAuth } from '@/context/AuthContext';
+import Sidebar from '../../components/layout/Sidebar';
+import AuthGuard from '../../components/auth/AuthGuard';
+import { useAuth } from '../../context/AuthContext';
 import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
