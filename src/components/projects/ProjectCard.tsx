@@ -56,8 +56,12 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
           const ownerProfile = await getUserProfile(owner);
           if (ownerProfile && ownerProfile.displayName) {
             setOwnerName(ownerProfile.displayName);
+          } else if (ownerProfile && ownerProfile.email) {
+            // Use email username as fallback
+            setOwnerName(ownerProfile.email.split('@')[0]);
           } else {
-            setOwnerName(owner.split('@')[0]);
+            // Last resort fallback
+            setOwnerName(owner.split('@')[0] || owner);
           }
         }
 
@@ -69,8 +73,12 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
           const assigneeProfile = await getUserProfile(assigneeId);
           if (assigneeProfile && assigneeProfile.displayName) {
             setAssigneeName(assigneeProfile.displayName);
+          } else if (assigneeProfile && assigneeProfile.email) {
+            // Use email username as fallback
+            setAssigneeName(assigneeProfile.email.split('@')[0]);
           } else {
-            setAssigneeName(assigneeId.split('@')[0]);
+            // Last resort fallback
+            setAssigneeName(assigneeId.split('@')[0] || assigneeId);
           }
         }
       } catch (error) {
@@ -145,8 +153,12 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
         const userProfile = await getUserProfile(userId);
         if (userProfile && userProfile.displayName) {
           setOwnerName(userProfile.displayName);
+        } else if (userProfile && userProfile.email) {
+          // Use email username as fallback
+          setOwnerName(userProfile.email.split('@')[0]);
         } else {
-          setOwnerName(userId.split('@')[0]);
+          // Last resort fallback
+          setOwnerName(userId.split('@')[0] || userId);
         }
       } else {
         // Update UI immediately
@@ -163,8 +175,12 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
         const userProfile = await getUserProfile(userId);
         if (userProfile && userProfile.displayName) {
           setAssigneeName(userProfile.displayName);
+        } else if (userProfile && userProfile.email) {
+          // Use email username as fallback
+          setAssigneeName(userProfile.email.split('@')[0]);
         } else {
-          setAssigneeName(userId.split('@')[0]);
+          // Last resort fallback
+          setAssigneeName(userId.split('@')[0] || userId);
         }
       }
     } catch (error) {
@@ -174,8 +190,10 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
         const originalOwnerProfile = await getUserProfile(owner || '');
         if (originalOwnerProfile && originalOwnerProfile.displayName) {
           setOwnerName(originalOwnerProfile.displayName);
+        } else if (originalOwnerProfile && originalOwnerProfile.email) {
+          setOwnerName(originalOwnerProfile.email.split('@')[0]);
         } else if (owner) {
-          setOwnerName(owner.split('@')[0]);
+          setOwnerName(owner.split('@')[0] || owner);
         } else {
           setOwnerName('None');
         }
@@ -183,8 +201,10 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
         const originalAssigneeProfile = await getUserProfile(assignee);
         if (originalAssigneeProfile && originalAssigneeProfile.displayName) {
           setAssigneeName(originalAssigneeProfile.displayName);
+        } else if (originalAssigneeProfile && originalAssigneeProfile.email) {
+          setAssigneeName(originalAssigneeProfile.email.split('@')[0]);
         } else {
-          setAssigneeName(assignee.split('@')[0]);
+          setAssigneeName(assignee.split('@')[0] || assignee);
         }
       } else {
         setAssigneeName('None');
@@ -322,7 +342,7 @@ const ProjectCard = memo(function ProjectCard({ project, onClick }: ProjectCardP
                       handleUserSelect(user.uid, type);
                     }}
                   >
-                    <span className="truncate">{user.displayName || user.email.split('@')[0]}</span>
+                    <span className="truncate">{user.displayName || user.email.split('@')[0] || user.uid.substring(0, 8)}</span>
                     {((type === 'owner' && owner === user.uid) || 
                      (type === 'assignee' && assignee === user.uid)) && (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">

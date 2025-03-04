@@ -34,10 +34,17 @@ const convertToUserProfile = (doc: DocumentSnapshot | QueryDocumentSnapshot): Us
     throw new Error('Document data is empty');
   }
   
+  // Get email or create a default
+  const email = data.email || '';
+  
+  // Format email for display if needed (remove domain part for cleaner UI)
+  const emailForDisplay = email.split('@')[0] || '';
+  
   return {
     uid: doc.id,
-    email: data.email || '',
-    displayName: data.displayName || doc.id.substring(0, 8),
+    email: email,
+    // Prefer displayName, then email username part, then fallback to uid
+    displayName: data.displayName || emailForDisplay || doc.id.substring(0, 8),
     photoURL: data.photoURL || null,
     isValidated: data.isValidated === true, // Ensure boolean
     roles: Array.isArray(data.roles) ? data.roles : [UserRole.USER],
