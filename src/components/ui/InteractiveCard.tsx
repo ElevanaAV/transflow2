@@ -1,3 +1,4 @@
+// src/components/ui/InteractiveCard.tsx
 'use client';
 
 import React, { ReactNode } from 'react';

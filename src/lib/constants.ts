@@ -1,3 +1,4 @@
+// src/lib/constants.ts
 import { ProjectPhase, PhaseStatus } from './types';
 
 /**

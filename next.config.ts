@@ -24,13 +24,13 @@ const nextConfig: NextConfig = {
   },
   // Disable unnecessary features for SSR function
   experimental: {
-    // Reduce the size of server components
-    serverComponentsExternalPackages: ['firebase'],
     // Optimize page loading
     optimizeCss: true,
     // Optimize bundle size
     optimizeServerReact: true,
   },
+  // Reduce the size of server components
+  serverExternalPackages: ['firebase'],
   // Remove console logs in production to reduce bundle size
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {

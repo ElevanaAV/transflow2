@@ -1,3 +1,4 @@
+// src/components/projects/WorkflowPhaseIndicator.tsx
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';

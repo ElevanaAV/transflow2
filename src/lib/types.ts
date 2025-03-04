@@ -1,3 +1,4 @@
+// src/lib/types.ts
 /**
  * Import FieldValue type for Firestore timestamps
  */

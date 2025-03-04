@@ -1,3 +1,4 @@
+// src/components/projects/ProjectCard.tsx
 'use client';
 
 import { memo } from 'react';

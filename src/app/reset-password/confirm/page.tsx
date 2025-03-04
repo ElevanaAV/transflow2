@@ -1,3 +1,4 @@
+// src/app/reset-password/confirm/page.tsx
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';

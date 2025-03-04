@@ -1,3 +1,4 @@
+// src/lib/runtime-config.ts
 /**
  * This module contains runtime configuration that helps with asset loading and host validation
  */

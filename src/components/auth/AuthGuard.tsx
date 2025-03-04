@@ -1,3 +1,4 @@
+// src/components/auth/AuthGuard.tsx
 'use client';
 
 import { useAuth } from '@/context/AuthContext';

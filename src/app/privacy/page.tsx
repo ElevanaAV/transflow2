@@ -1,3 +1,4 @@
+// src/app/privacy/page.tsx
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
