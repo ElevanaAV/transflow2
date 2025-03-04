@@ -40,6 +40,11 @@ const Header = () => {
       name: 'Settings',
       href: '/settings',
       requiresAuth: true
+    },
+    {
+      name: 'Admin Setup',
+      href: '/admin/init',
+      requiresAuth: true
     }
   ];
 

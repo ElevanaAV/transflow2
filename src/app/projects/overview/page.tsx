@@ -4,8 +4,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getUserProjects } from '@/lib/services/projectService';
-import { Project, PhaseStatus, ProjectPhase, ProjectStats } from '@/lib/types';
+import { getUserProjects, getAssignedProjects } from '@/lib/services/projectService';
+import { Project, PhaseStatus, ProjectPhase, ProjectStats, UserRole } from '@/lib/types';
 import { PHASE_SEQUENCE, PHASE_LABELS } from '@/lib/constants';
 import AuthGuard from '@/components/auth/AuthGuard';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -185,10 +185,12 @@ const WorkflowOverview = () => {
 };
 
 export default function ProjectsOverview() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
+  const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filterActive, setFilterActive] = useState(false);
@@ -197,6 +199,7 @@ export default function ProjectsOverview() {
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(9); // Show 9 projects per page (3x3 grid)
   const [recentProject, setRecentProject] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<'mywork' | 'all'>('mywork');  // Default to 'mywork' view
   const [stats, setStats] = useState<ProjectStats>({
     activeProjects: 0,
     inTranslation: 0,
@@ -204,6 +207,9 @@ export default function ProjectsOverview() {
     inAudioProduction: 0,
     inAudioReview: 0,
   });
+  
+  // Check if current user is admin
+  const isAdmin = hasRole(UserRole.ADMIN);
 
   // Memoized function to calculate project statistics
   const calculateProjectStats = useCallback((projects: Project[]): ProjectStats => {
@@ -248,7 +254,20 @@ export default function ProjectsOverview() {
 
   // Apply all filters and sorting
   const applyFiltersAndSort = useCallback(() => {
-    let result = [...projects];
+    // Determine which project set to use based on view mode
+    let projectsToFilter = viewMode === 'mywork' 
+      ? [...assignedProjects, ...myProjects]
+      : [...allProjects];
+    
+    // Remove duplicates by id
+    const projectMap = new Map<string, Project>();
+    projectsToFilter.forEach(project => {
+      if (project.id) {
+        projectMap.set(project.id, project);
+      }
+    });
+    
+    let result = Array.from(projectMap.values());
     
     // Apply in-progress filter if active
     if (filterActive) {
@@ -278,7 +297,7 @@ export default function ProjectsOverview() {
     setFilteredProjects(result);
     // Reset to first page when filters change
     setPage(1);
-  }, [projects, filterActive, filterPhase, sortOption]);
+  }, [myProjects, assignedProjects, allProjects, viewMode, filterActive, filterPhase, sortOption]);
 
   // Toggle in-progress filter
   const toggleInProgressFilter = useCallback(() => {
@@ -290,10 +309,10 @@ export default function ProjectsOverview() {
     setFilterPhase(prev => prev === phase ? null : phase);
   }, []);
   
-  // Effect to apply filters and sorting when filter conditions change
+  // Effect to apply filters and sorting when filter conditions or view mode changes
   useEffect(() => {
     applyFiltersAndSort();
-  }, [applyFiltersAndSort]);
+  }, [applyFiltersAndSort, viewMode]);
 
   // Function to cycle through sort options
   const cycleSortOption = useCallback(() => {
@@ -322,57 +341,70 @@ export default function ProjectsOverview() {
           setError(null);
         }
         
-        // Try to fetch projects a few times with a delay between attempts
-        let attempts = 0;
-        const maxAttempts = 3;
-        let userProjects = null;
+        // Fetch both created projects and assigned projects
+        console.log('Fetching projects for user ID:', user.uid);
         
-        console.log('Attempting to fetch projects with user ID:', user.uid);
-        
-        while (attempts < maxAttempts && !userProjects && isMounted) {
-          try {
-            userProjects = await getUserProjects(user.uid);
-            console.log('Projects fetched successfully:', userProjects.length);
-          } catch (err) {
-            console.error(`Attempt ${attempts + 1} failed:`, err);
-            attempts++;
-            if (attempts >= maxAttempts) throw err;
-            // Wait a bit before retrying
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-        
-        if (userProjects && isMounted) {
-          setProjects(userProjects);
-          setFilteredProjects(userProjects);
+        try {
+          // Fetch in parallel for better performance
+          const [createdProjects, workAssignments] = await Promise.all([
+            getUserProjects(user.uid),
+            getAssignedProjects(user.uid)
+          ]);
           
-          // Calculate statistics
-          const projectStats = calculateProjectStats(userProjects);
-          setStats(projectStats);
+          console.log('Created projects fetched:', createdProjects.length);
+          console.log('Assigned projects fetched:', workAssignments.length);
           
-          // Set most recent project for "Continue Recent Work" button
-          if (userProjects.length > 0) {
-            // Sort by updatedAt timestamp
-            const sortedProjects = [...userProjects].sort(
-              (a, b) => {
-                const dateA = a.updatedAt instanceof Date ? a.updatedAt : 
-                            typeof a.updatedAt === 'number' ? new Date(a.updatedAt) : new Date();
-                const dateB = b.updatedAt instanceof Date ? b.updatedAt : 
-                            typeof b.updatedAt === 'number' ? new Date(b.updatedAt) : new Date();
-                return dateB.getTime() - dateA.getTime();
+          if (isMounted) {
+            // Set the different project collections
+            setMyProjects(createdProjects);
+            setAssignedProjects(workAssignments);
+            setAllProjects([...createdProjects, ...workAssignments]);
+            
+            // Default view is mywork, which includes both created and assigned
+            const myWorkProjects = [...createdProjects, ...workAssignments];
+            
+            // Remove duplicates by id
+            const projectMap = new Map<string, Project>();
+            myWorkProjects.forEach(project => {
+              if (project.id) {
+                projectMap.set(project.id, project);
               }
-            );
+            });
             
-            // Find most recent project with any in-progress phase
-            const inProgressProject = sortedProjects.find(project => 
-              Object.values(project.phases).some(status => status === PhaseStatus.IN_PROGRESS)
-            );
+            const uniqueProjects = Array.from(projectMap.values());
+            setFilteredProjects(uniqueProjects);
             
-            // Use in-progress project if found, otherwise use most recent
-            setRecentProject(inProgressProject || sortedProjects[0]);
+            // Calculate statistics based on all projects
+            const projectStats = calculateProjectStats(uniqueProjects);
+            setStats(projectStats);
+            
+            // Set most recent project for "Continue Recent Work" button
+            if (uniqueProjects.length > 0) {
+              // Sort by updatedAt timestamp
+              const sortedProjects = [...uniqueProjects].sort(
+                (a, b) => {
+                  const dateA = a.updatedAt instanceof Date ? a.updatedAt : 
+                              typeof a.updatedAt === 'number' ? new Date(a.updatedAt) : new Date();
+                  const dateB = b.updatedAt instanceof Date ? b.updatedAt : 
+                              typeof b.updatedAt === 'number' ? new Date(b.updatedAt) : new Date();
+                  return dateB.getTime() - dateA.getTime();
+                }
+              );
+              
+              // Find most recent project with any in-progress phase
+              const inProgressProject = sortedProjects.find(project => 
+                Object.values(project.phases).some(status => status === PhaseStatus.IN_PROGRESS)
+              );
+              
+              // Use in-progress project if found, otherwise use most recent
+              setRecentProject(inProgressProject || sortedProjects[0]);
+            }
           }
-        } else if (isMounted) {
-          throw new Error('Failed to load projects after multiple attempts');
+        } catch (err) {
+          console.error('Error fetching projects:', err);
+          if (isMounted) {
+            throw err;
+          }
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -536,8 +568,25 @@ export default function ProjectsOverview() {
             {/* Your Projects */}
             <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
               <div className="px-4 py-5 border-b border-gray-200 sm:px-6 flex flex-col md:flex-row md:items-center md:justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 mb-3 md:mb-0">Your Projects</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3 md:mb-0">
+                  {viewMode === 'mywork' ? 'My Work' : 'All Projects'}
+                </h2>
                 <div className="flex flex-wrap gap-2">
+                  {/* View mode toggle - only visible to admins */}
+                  {isAdmin && (
+                    <Button
+                      variant="outline"
+                      className={`border-gray-300 ${viewMode === 'all' ? 'bg-gray-100' : ''}`}
+                      onClick={() => {
+                        setViewMode(viewMode === 'mywork' ? 'all' : 'mywork');
+                        // Trigger filter reapplication when view mode changes
+                        setTimeout(() => applyFiltersAndSort(), 0);
+                      }}
+                    >
+                      {viewMode === 'mywork' ? 'View All Projects' : 'View My Work'}
+                    </Button>
+                  )}
+                  
                   <Button 
                     variant="primary"
                     size="md"
@@ -635,7 +684,7 @@ export default function ProjectsOverview() {
                 }
                 onClick={() => {
                   // Find project in translation phase
-                  const translationProject = projects.find(p => 
+                  const translationProject = filteredProjects.find((p: Project) => 
                     p.currentPhase === ProjectPhase.SUBTITLE_TRANSLATION && 
                     p.phases[ProjectPhase.SUBTITLE_TRANSLATION] !== PhaseStatus.COMPLETED
                   );
@@ -656,7 +705,7 @@ export default function ProjectsOverview() {
                 }
                 onClick={() => {
                   // Find project in audio production phase
-                  const audioProject = projects.find(p => 
+                  const audioProject = filteredProjects.find((p: Project) => 
                     p.currentPhase === ProjectPhase.AUDIO_PRODUCTION && 
                     p.phases[ProjectPhase.AUDIO_PRODUCTION] !== PhaseStatus.COMPLETED
                   );
@@ -664,7 +713,7 @@ export default function ProjectsOverview() {
                     router.push(`/projects/${audioProject.id}/phases/${ProjectPhase.AUDIO_PRODUCTION}`);
                   } else {
                     // Otherwise find project in translation
-                    const translatedProject = projects.find(p => 
+                    const translatedProject = filteredProjects.find((p: Project) => 
                       p.phases[ProjectPhase.TRANSLATION_PROOFREADING] === PhaseStatus.COMPLETED
                     );
                     if (translatedProject) {

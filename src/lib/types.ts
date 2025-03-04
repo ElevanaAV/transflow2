@@ -34,6 +34,13 @@ export type VideoStatus = 'pending' | 'in_progress' | 'completed';
 export type ProjectPhases = Record<ProjectPhase, PhaseStatus>;
 
 /**
+ * Phase assignment structure with single assignee per phase
+ */
+export type PhaseAssignments = {
+  [key in ProjectPhase]?: string;
+};
+
+/**
  * Project model interface - base type without ID
  */
 export interface ProjectBase {
@@ -45,7 +52,7 @@ export interface ProjectBase {
   updatedAt: Date | number | FieldValue;
   createdBy: string;
   owner: string;
-  assignees: string[];
+  phaseAssignments: PhaseAssignments;
   phases: ProjectPhases;
   currentPhase: ProjectPhase;
 }
@@ -66,7 +73,10 @@ export interface Project extends Partial<ProjectBase> {
   updatedAt: Date | number | FieldValue;
   // These fields might be missing in existing data
   owner?: string;
+  // Legacy field - keeping for backward compatibility
   assignees?: string[];
+  // New field for single assignee per phase
+  phaseAssignments?: PhaseAssignments;
 }
 
 /**
@@ -166,10 +176,15 @@ export type ProjectUpdate = {
   targetLanguages?: string[];
   currentPhase?: ProjectPhase;
   owner?: string;
+  // Legacy field - keeping for backward compatibility
   assignees?: string[];
+  // New field for single assignee per phase
+  phaseAssignments?: PhaseAssignments;
   updatedAt?: Date | FieldValue;
 } & {
   [K in `phases.${ProjectPhase}`]?: PhaseStatus;
+} & {
+  [K in `phaseAssignments.${ProjectPhase}`]?: string;
 }
 
 /**
@@ -182,5 +197,40 @@ export type VideoUpdate = {
   audioUrl?: string;
   status?: string;
   translatedFileContent?: string;
+  updatedAt?: Date | FieldValue;
+}
+
+/**
+ * User roles in the system
+ */
+export enum UserRole {
+  ADMIN = 'admin',
+  TRANSLATOR = 'translator', 
+  REVIEWER = 'reviewer',
+  AUDIO_PRODUCER = 'audio_producer',
+  USER = 'user'
+}
+
+/**
+ * Base interface for user profile information
+ */
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  isValidated: boolean;
+  roles: UserRole[];
+  bio?: string;
+  skills?: string[];
+  languages?: string[];
+  createdAt: Date | FieldValue;
+  updatedAt: Date | FieldValue;
+}
+
+/**
+ * Type for user profile updates
+ */
+export type UserProfileUpdate = Partial<Omit<UserProfile, 'uid' | 'email' | 'createdAt'>> & {
   updatedAt?: Date | FieldValue;
 }

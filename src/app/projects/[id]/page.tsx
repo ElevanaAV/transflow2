@@ -4,8 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getProject, updateProjectPhaseStatus } from '@/lib/services/projectService';
-import { Project, ProjectPhase, PhaseStatus } from '@/lib/types';
+import { getProject, updateProjectPhaseStatus, assignUserToPhase } from '@/lib/services/projectService';
+import { getUsersForPhaseAssignment } from '@/lib/services/userService';
+import { Project, ProjectPhase, PhaseStatus, UserProfile, UserRole } from '@/lib/types';
 import WorkflowPhaseIndicator from '@/components/projects/WorkflowPhaseIndicator';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -13,12 +14,18 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingPhase, setUpdatingPhase] = useState(false);
+  const [eligibleUsers, setEligibleUsers] = useState<Record<ProjectPhase, UserProfile[]>>({} as Record<ProjectPhase, UserProfile[]>);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [assigningPhase, setAssigningPhase] = useState<ProjectPhase | null>(null);
+  
+  // Check if current user is admin
+  const isAdmin = hasRole(UserRole.ADMIN);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -47,6 +54,11 @@ export default function ProjectDetailPage() {
         
         if (projectData) {
           setProject(projectData);
+          
+          // For admins, fetch eligible users for each phase
+          if (isAdmin) {
+            await fetchEligibleUsers();
+          }
         } else {
           throw new Error('Failed to load project after multiple attempts');
         }
@@ -59,7 +71,36 @@ export default function ProjectDetailPage() {
     };
 
     fetchProject();
-  }, [id, user]);
+  }, [id, user, isAdmin]);
+  
+  // Fetch eligible users for each phase
+  const fetchEligibleUsers = async () => {
+    if (!isAdmin) return;
+    
+    setLoadingUsers(true);
+    try {
+      const phaseUsers: Record<ProjectPhase, UserProfile[]> = {} as Record<ProjectPhase, UserProfile[]>;
+      
+      // Fetch users for each phase in parallel
+      const [translationUsers, proofreadingUsers, audioProductionUsers, audioReviewUsers] = await Promise.all([
+        getUsersForPhaseAssignment(ProjectPhase.SUBTITLE_TRANSLATION),
+        getUsersForPhaseAssignment(ProjectPhase.TRANSLATION_PROOFREADING),
+        getUsersForPhaseAssignment(ProjectPhase.AUDIO_PRODUCTION),
+        getUsersForPhaseAssignment(ProjectPhase.AUDIO_REVIEW)
+      ]);
+      
+      phaseUsers[ProjectPhase.SUBTITLE_TRANSLATION] = translationUsers;
+      phaseUsers[ProjectPhase.TRANSLATION_PROOFREADING] = proofreadingUsers;
+      phaseUsers[ProjectPhase.AUDIO_PRODUCTION] = audioProductionUsers;
+      phaseUsers[ProjectPhase.AUDIO_REVIEW] = audioReviewUsers;
+      
+      setEligibleUsers(phaseUsers);
+    } catch (err) {
+      console.error('Error fetching eligible users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const handlePhaseClick = (phase: ProjectPhase) => {
     if (!project || !id) return;
@@ -79,6 +120,26 @@ export default function ProjectDetailPage() {
       setError('Failed to update phase status. Please try again.');
     } finally {
       setUpdatingPhase(false);
+    }
+  };
+  
+  // Handle assigning a user to a phase
+  const handleAssignUser = async (phase: ProjectPhase, userId: string | null) => {
+    if (!project || !id) return;
+    
+    try {
+      setAssigningPhase(phase);
+      setError(null);
+      
+      const updatedProject = await assignUserToPhase(id as string, phase, userId);
+      setProject(updatedProject);
+      
+      // Clear the assigning state
+      setAssigningPhase(null);
+    } catch (err) {
+      console.error('Error assigning user to phase:', err);
+      setError('Failed to assign user to phase. Please try again.');
+      setAssigningPhase(null);
     }
   };
 
@@ -222,7 +283,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <h2 className="text-lg font-semibold mb-4">Project Details</h2>
               <div className="space-y-4">
                 <div>
@@ -243,6 +304,83 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             </div>
+            
+            {/* Phase assignments section - only visible to admins */}
+            {isAdmin && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-lg font-semibold mb-4">Phase Assignments</h2>
+                
+                {loadingUsers ? (
+                  <div className="flex justify-center py-4">
+                    <LoadingSpinner size="md" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.values(ProjectPhase).map(phase => {
+                      // Get formatted phase name
+                      const phaseName = phase.split('_').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                      ).join(' ');
+                      
+                      // Get current assignee if exists
+                      const currentAssigneeId = project.phaseAssignments?.[phase] || null;
+                      
+                      // Get available users for this phase
+                      const availableUsers = eligibleUsers[phase] || [];
+                      
+                      return (
+                        <div key={phase} className="p-3 border border-gray-200 rounded-md">
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-medium">{phaseName}</h3>
+                            <div className="text-sm px-2 py-1 rounded-full bg-gray-100">
+                              {project.phases[phase]}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Assign to:
+                            </label>
+                            
+                            <div className="flex space-x-2">
+                              <select
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                value={currentAssigneeId || ''}
+                                onChange={(e) => handleAssignUser(phase, e.target.value === '' ? null : e.target.value)}
+                                disabled={assigningPhase === phase}
+                              >
+                                <option value="">-- Unassigned --</option>
+                                {availableUsers.map(user => (
+                                  <option key={user.uid} value={user.uid}>
+                                    {user.displayName || user.email}
+                                  </option>
+                                ))}
+                              </select>
+                              
+                              {assigningPhase === phase && (
+                                <div className="flex items-center">
+                                  <LoadingSpinner size="sm" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {currentAssigneeId && (
+                              <button
+                                className="mt-2 text-sm text-red-600 hover:text-red-800"
+                                onClick={() => handleAssignUser(phase, null)}
+                                disabled={assigningPhase === phase}
+                              >
+                                Remove assignment
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

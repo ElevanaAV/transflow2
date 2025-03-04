@@ -56,7 +56,9 @@ const convertToProject = (doc: DocumentSnapshot | QueryDocumentSnapshot): Projec
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
     // Ensure these fields exist with defaults if missing
     owner: data.owner || data.createdBy,
-    assignees: data.assignees || [data.createdBy]
+    assignees: data.assignees || [data.createdBy],
+    // Initialize empty phase assignments if missing
+    phaseAssignments: data.phaseAssignments || {}
   } as Project;
 };
 
@@ -115,7 +117,8 @@ export const createProject = async (projectData: ProjectFormData, userId: string
       ...projectData,
       createdBy: userId,
       owner: userId,
-      assignees: [userId],
+      assignees: [userId], // Keep for backward compatibility
+      phaseAssignments: {}, // Empty phase assignments - no initial assignments
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       currentPhase: ProjectPhase.SUBTITLE_TRANSLATION,
@@ -197,13 +200,14 @@ export const getUserProjects = async (userId: string): Promise<Project[]> => {
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(),
           // Add missing fields with defaults if not present
           owner: data.owner || data.createdBy,
-          assignees: data.assignees || [data.createdBy]
+          assignees: data.assignees || [data.createdBy],
+          phaseAssignments: data.phaseAssignments || {}
         } as Project;
         
         projects.push(project);
         
         // If fields are missing in the database, update them
-        if (!data.owner || !data.assignees) {
+        if (!data.owner || !data.assignees || !data.phaseAssignments) {
           const projectRef = doc.ref;
           const updates: Record<string, any> = {};
           
@@ -213,6 +217,10 @@ export const getUserProjects = async (userId: string): Promise<Project[]> => {
           
           if (!data.assignees) {
             updates.assignees = [data.createdBy];
+          }
+          
+          if (!data.phaseAssignments) {
+            updates.phaseAssignments = {};
           }
           
           // Update the document with the missing fields
@@ -240,6 +248,58 @@ export const getUserProjects = async (userId: string): Promise<Project[]> => {
   } catch (error) {
     console.error('Error fetching user projects:', error);
     const errorResponse = createErrorResponse(error, 'Failed to fetch user projects');
+    throw errorResponse;
+  }
+};
+
+/**
+ * Gets all projects assigned to a user in any phase
+ */
+export const getAssignedProjects = async (userId: string): Promise<Project[]> => {
+  if (!userId) {
+    console.error('getAssignedProjects called with empty userId');
+    throw new Error('User ID is required to fetch assigned projects');
+  }
+
+  try {
+    console.log(`Querying Firestore for projects assigned to user ID=${userId}`);
+    
+    // Get all projects - we'll filter client-side
+    // This is not efficient but Firestore doesn't support querying nested fields easily
+    const projectsSnapshot = await getDocs(collection(firestore, PROJECTS_COLLECTION));
+    
+    const assignedProjects: Project[] = [];
+    
+    // Process each document and check if the user is assigned to any phase
+    projectsSnapshot.docs.forEach(doc => {
+      try {
+        const data = doc.data();
+        const project = convertToProject(doc);
+        
+        // Check if the user is assigned to any phase
+        if (project.phaseAssignments) {
+          const isAssigned = Object.values(project.phaseAssignments).includes(userId);
+          if (isAssigned) {
+            assignedProjects.push(project);
+          }
+        }
+      } catch (err) {
+        console.error(`Error processing project ${doc.id}:`, err);
+      }
+    });
+    
+    // Sort by updatedAt in descending order
+    assignedProjects.sort((a, b) => {
+      const dateA = a.updatedAt instanceof Date ? a.updatedAt : new Date();
+      const dateB = b.updatedAt instanceof Date ? b.updatedAt : new Date();
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    console.log(`Returning ${assignedProjects.length} assigned projects in total`);
+    return assignedProjects;
+  } catch (error) {
+    console.error('Error fetching assigned projects:', error);
+    const errorResponse = createErrorResponse(error, 'Failed to fetch assigned projects');
     throw errorResponse;
   }
 };
@@ -278,6 +338,7 @@ export const updateProject = async (projectId: string, projectData: ProjectUpdat
       ...(projectData.currentPhase !== undefined && { currentPhase: projectData.currentPhase }),
       ...(projectData.owner !== undefined && { owner: projectData.owner }),
       ...(projectData.assignees !== undefined && { assignees: projectData.assignees }),
+      ...(projectData.phaseAssignments !== undefined && { phaseAssignments: projectData.phaseAssignments }),
       id: projectId,
       updatedAt: new Date()
     };
@@ -287,6 +348,12 @@ export const updateProject = async (projectId: string, projectData: ProjectUpdat
       if (key.startsWith('phases.')) {
         const phase = key.split('.')[1] as ProjectPhase;
         updatedProject.phases[phase] = value as PhaseStatus;
+      } else if (key.startsWith('phaseAssignments.')) {
+        const phase = key.split('.')[1] as ProjectPhase;
+        if (!updatedProject.phaseAssignments) {
+          updatedProject.phaseAssignments = {};
+        }
+        updatedProject.phaseAssignments[phase] = value as string;
       }
     });
     
@@ -348,6 +415,61 @@ export const updateProjectPhaseStatus = async (
     const errorResponse = createErrorResponse(
       error, 
       `Failed to update phase status for project with ID ${projectId}`
+    );
+    throw errorResponse;
+  }
+};
+
+/**
+ * Assigns a user to a specific project phase
+ */
+export const assignUserToPhase = async (
+  projectId: string,
+  phase: ProjectPhase,
+  userId: string | null // null to unassign
+): Promise<Project> => {
+  try {
+    const docRef = doc(firestore, PROJECTS_COLLECTION, projectId);
+    
+    // First get current project to validate it exists
+    const currentDoc = await getDoc(docRef);
+    if (!currentDoc.exists()) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const currentProject = convertToProject(currentDoc);
+    
+    // Create a strongly-typed update object
+    const updateData: ProjectUpdate = {
+      [`phaseAssignments.${phase}`]: userId || null,
+      updatedAt: serverTimestamp()
+    };
+    
+    await updateDoc(docRef, updateData);
+    
+    // Create updated phase assignments
+    const updatedPhaseAssignments = { 
+      ...(currentProject.phaseAssignments || {})
+    };
+    
+    if (userId) {
+      updatedPhaseAssignments[phase] = userId;
+    } else {
+      // If userId is null, remove the assignment
+      delete updatedPhaseAssignments[phase];
+    }
+    
+    // Return updated project
+    return {
+      ...currentProject,
+      phaseAssignments: updatedPhaseAssignments,
+      updatedAt: new Date()
+    };
+  } catch (error) {
+    console.error('Error assigning user to phase:', error);
+    const errorResponse = createErrorResponse(
+      error, 
+      `Failed to assign user to phase for project with ID ${projectId}`
     );
     throw errorResponse;
   }
